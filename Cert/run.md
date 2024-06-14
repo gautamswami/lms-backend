@@ -1,0 +1,1 @@
+uvicorn app:app --host 0.0.0.0 --port 8000 --ssl-keyfile Cert/nginx.key  --ssl-certfile Cert/nginx.crt
