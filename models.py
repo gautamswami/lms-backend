@@ -1,152 +1,183 @@
-from sqlalchemy import create_engine, Column, String, Integer, ForeignKey, Boolean, Date
-from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Date, Table, DateTime, Numeric
+from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.sql import func
 
 Base = declarative_base()
+
+# Association table for many-to-many relationships between users and courses
+association_table = Table('user_courses', Base.metadata,
+                          Column('user_id', ForeignKey('users.id'), primary_key=True),
+                          Column('course_id', ForeignKey('courses.id'), primary_key=True))
+
+
+class ServiceLine(Base):
+    __tablename__ = 'service_line'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    # Relationships
+    courses = relationship('Course', back_populates='service_line')
+    admins = relationship('User', back_populates='service_line')
+
+
+class Role(Base):
+    __tablename__ = 'roles'
+    RoleName = Column(String, primary_key=True)
+    Description = Column(String)
+    # Relationships
+    users = relationship('User', back_populates='role')
 
 
 class User(Base):
     __tablename__ = 'users'
-
-    UserID = Column(Integer, primary_key=True, autoincrement=True)
-    UserName = Column(String, nullable=False)
-    Password = Column(String, nullable=False)
-    Email = Column(String, unique=True, nullable=False)
-    Role = Column(String, nullable=False)  # Admin, Trainer, User
-    Credits = Column(Integer, default=0)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_creation_date = Column(DateTime, default=func.now())
+    dp_file_id = Column(String, ForeignKey('files.FileID'))
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    employee_id = Column(String, nullable=False)
+    designation = Column(String)
+    role_name = Column(String, ForeignKey('roles.RoleName'))
+    service_line_id = Column(Integer, ForeignKey('service_line.id'))
+    total_training_hours = Column(Integer, default=0)
 
     # Relationships
+    role = relationship('Role', back_populates='users')
+    service_line = relationship('ServiceLine', back_populates='admins')
+    courses_assigned = relationship('Course', secondary=association_table, back_populates='users_assigned')
     enrollments = relationship('Enrollment', back_populates='user')
-    assessment_results = relationship('AssessmentResult', back_populates='user')
-    # reports = relationship('Report', back_populates='admin')
-    created_courses = relationship('Course', back_populates='creator')
+    feedbacks = relationship('Feedback', back_populates='user')
+    learning_paths = relationship('LearningPath', secondary='user_learning_paths', back_populates='users')
+
+
+class File(Base):
+    __tablename__ = 'files'
+    FileID = Column(String, primary_key=True)
+    FileName = Column(String, nullable=False)
+    FilePath = Column(String, nullable=False)
+    FileType = Column(String, nullable=False)  # pdf , mp4, pptx ...
+    type = Column(String, nullable=False)  # Course content, DP, thumbnail
 
 
 class Course(Base):
     __tablename__ = 'courses'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String, nullable=False)
+    description = Column(String)
+    category = Column(String)
+    created_by = Column(Integer, ForeignKey('users.id'))
+    service_line_id = Column(Integer, ForeignKey('service_line.id'))
+    expected_time_to_complete = Column(Integer)
+    ratings = Column(Integer, default=0)
+    is_approved = Column(Boolean, default=False)
+    creation_date = Column(DateTime, default=func.now())  # To track when a course was created
+    approved_date = Column(DateTime, default=func.now())  # To track when a course was created
+    approved_by = Column(Integer, ForeignKey('users.id'))
 
-    CourseID = Column(Integer, primary_key=True, autoincrement=True)
-    CourseName = Column(String, nullable=False)
-    Description = Column(String)
-    Category = Column(String)
-    Difficulty = Column(String)
-    MostPopular = Column(Boolean, default=False)
-    Mandatory = Column(Boolean, default=False)
-    ExpectedTimeToComplete = Column(Integer)
-    Credits = Column(Integer, default=0)
-    CreatedBy = Column(Integer, ForeignKey('users.UserID'), nullable=False)
+    thumbnail_file_id = Column(String, ForeignKey('files.FileID'))
 
     # Relationships
-    contents = relationship('CourseContent', back_populates='course')
-    quizzes = relationship('Quiz', back_populates='course')
-    assessments = relationship('Assessment', back_populates='course')
+    service_line = relationship('ServiceLine', back_populates='courses')
+    chapters = relationship('Chapter', back_populates='course')
+    users_assigned = relationship('User', secondary=association_table, back_populates='courses_assigned')
     enrollments = relationship('Enrollment', back_populates='course')
-    creator = relationship('User', back_populates='created_courses')
 
 
-class CourseContent(Base):
-    __tablename__ = 'course_contents'
-
-    ContentID = Column(Integer, primary_key=True, autoincrement=True)
-    CourseID = Column(Integer, ForeignKey('courses.CourseID'), nullable=False)
-    ContentType = Column(String)  # PPTX, Video, PDF, Word, MP3
-    ContentURL = Column(String, nullable=False)
-    Order = Column(Integer, nullable=False)
-
+class Chapter(Base):
+    __tablename__ = 'chapters'
+    id = Column(Integer, primary_key=True)
+    course_id = Column(Integer, ForeignKey('courses.id'))
+    title = Column(String, nullable=False)
     # Relationships
-    course = relationship('Course', back_populates='contents')
+    course = relationship('Course', back_populates='chapters')
+    contents = relationship('Content', back_populates='chapter')
 
 
-class Quiz(Base):
-    __tablename__ = 'quizzes'
-
-    QuizID = Column(Integer, primary_key=True, autoincrement=True)
-    CourseID = Column(Integer, ForeignKey('courses.CourseID'), nullable=False)
-    Question = Column(String, nullable=False)
-    Options = Column(String, nullable=False)  # JSON or delimited string
-    CorrectAnswer = Column(String, nullable=False)
-
+class Content(Base):
+    __tablename__ = 'contents'
+    id = Column(Integer, primary_key=True)
+    chapter_id = Column(Integer, ForeignKey('chapters.id'))
+    title = Column(String, nullable=False)
+    content_type = Column(String)  # e.g., "video", "quiz", "text"
+    file_id = Column(String, ForeignKey('files.FileID'))  # Link to the associated file
     # Relationships
-    course = relationship('Course', back_populates='quizzes')
+    chapter = relationship('Chapter', back_populates='contents')
+    file = relationship('File')  # Direct relationship to the File table
 
 
 class Enrollment(Base):
     __tablename__ = 'enrollments'
-
-    EnrollmentID = Column(Integer, primary_key=True, autoincrement=True)
-    UserID = Column(Integer, ForeignKey('users.UserID'), nullable=False)
-    CourseID = Column(Integer, ForeignKey('courses.CourseID'), nullable=False)
-    EnrollDate = Column(Date, nullable=False)
-    EndDate = Column(Date, nullable=False)
-    Status = Column(String, nullable=False)  # Pending, Completed, Failed
-    TimeSpent = Column(Integer, default=0)
-
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    course_id = Column(Integer, ForeignKey('courses.id'))
+    enroll_date = Column(Date, default=func.now())
+    year = Column(Integer)  # The year of enrollment, can be set based on enroll_date
+    due_date = Column(Date)
+    status = Column(String, default="Enrolled")
+    completion_percentage = Column(Numeric)  # Represents overall course completion percentage
     # Relationships
     user = relationship('User', back_populates='enrollments')
     course = relationship('Course', back_populates='enrollments')
+    progress = relationship('Progress', uselist=False, back_populates='enrollment')
 
 
-class Assessment(Base):
-    __tablename__ = 'assessments'
-
-    AssessmentID = Column(Integer, primary_key=True, autoincrement=True)
-    CourseID = Column(Integer, ForeignKey('courses.CourseID'), nullable=False)
-    AssessmentType = Column(String, nullable=False)  # MCQ
-    PassMark = Column(Integer, nullable=False)
-
+class Progress(Base):
+    __tablename__ = 'progress'
+    id = Column(Integer, primary_key=True)
+    enrollment_id = Column(Integer, ForeignKey('enrollments.id'))
+    last_chapter_id = Column(Integer, ForeignKey('chapters.id'))
+    last_content_id = Column(Integer, ForeignKey('contents.id'))
+    last_accessed = Column(DateTime, default=func.now())
     # Relationships
-    course = relationship('Course', back_populates='assessments')
-    assessment_results = relationship('AssessmentResult', back_populates='assessment')
+    enrollment = relationship('Enrollment', back_populates='progress')
+    last_chapter = relationship('Chapter')
+    last_content = relationship('Content')
 
 
-class AssessmentResult(Base):
-    __tablename__ = 'assessment_results'
-
-    ResultID = Column(Integer, primary_key=True, autoincrement=True)
-    AssessmentID = Column(Integer, ForeignKey('assessments.AssessmentID'), nullable=False)
-    UserID = Column(Integer, ForeignKey('users.UserID'), nullable=False)
-    Score = Column(Integer, nullable=False)
-    Status = Column(String, nullable=False)  # Pass, Fail
-    CertificateGenerated = Column(Boolean, default=False)
-    Badge = Column(Boolean, default=False)
-
+class Certificate(Base):
+    __tablename__ = 'certificates'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    course_id = Column(Integer, ForeignKey('courses.id'))
+    issue_date = Column(Date, default=func.now())
+    certificate_url = Column(String)
     # Relationships
-    assessment = relationship('Assessment', back_populates='assessment_results')
-    user = relationship('User', back_populates='assessment_results')
+    user = relationship('User', backref='certificates')
+    course = relationship('Course', backref='certificates')
 
 
-class FileMetadata(Base):
-    __tablename__ = 'file_metadata'
+class LearningPath(Base):
+    __tablename__ = 'learning_paths'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    expiry_date = Column(Date)
+    # Relationships
+    users = relationship('User', secondary='user_learning_paths', back_populates='learning_paths')
+    courses = relationship('Course', secondary='learning_path_courses', back_populates='learning_paths')
 
-    id = Column(String, primary_key=True)
-    filename = Column(String, nullable=False)
-    content_type = Column(String, nullable=False)
-    path = Column(String, nullable=True)
+
+class Feedback(Base):
+    __tablename__ = 'feedbacks'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    course_id = Column(Integer, ForeignKey('courses.id'))
+    description = Column(String)
+    rating = Column(Integer)
+    # Relationships
+    user = relationship('User', back_populates='feedbacks')
+    course = relationship('Course', backref='feedbacks')
 
 
-# class Report(Base):
-#     __tablename__ = 'reports'
-#
-#     ReportID = Column(Integer, primary_key=True, autoincrement=True)
-#     AdminID = Column(Integer, ForeignKey('users.UserID'), nullable=False)
-#     UserID = Column(Integer, ForeignKey('users.UserID'), nullable=False)
-#     CourseID = Column(Integer, ForeignKey('courses.CourseID'), nullable=False)
-#     SuccessRate = Column(Float, nullable=False)
-#
-#     # Relationships
-#     admin = relationship('User', foreign_keys=[AdminID], back_populates='reports')
-#     user = relationship('User', foreign_keys=[UserID])
-#     course = relationship('Course')
+# Secondary tables for many-to-many relationships
+user_learning_paths = Table('user_learning_paths', Base.metadata,
+                            Column('user_id', ForeignKey('users.id'), primary_key=True),
+                            Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True))
 
-if __name__ == '__main__':
-    # Database connection
-    engine = create_engine('sqlite:///lms.db')
-    Base.metadata.create_all(engine)
+learning_path_courses = Table('learning_path_courses', Base.metadata,
+                              Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True),
+                              Column('course_id', ForeignKey('courses.id'), primary_key=True))
 
-    # Session setup
-    Session = sessionmaker(bind=engine)
-    session = Session()
 
-    # Example usage:
-    new_user = User(UserName='John Doe', Password='secure-password', Email='johndoe@example.com', Role='Admin')
-    session.add(new_user)
-    session.commit()
+class FileMetadata:
+    pass
