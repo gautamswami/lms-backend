@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Date, Table, DateTime, Numeric
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Date, Table, DateTime, Numeric, Index
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
 
@@ -8,6 +8,15 @@ Base = declarative_base()
 association_table = Table('user_courses', Base.metadata,
                           Column('user_id', ForeignKey('users.id'), primary_key=True),
                           Column('course_id', ForeignKey('courses.id'), primary_key=True))
+
+# Secondary tables for many-to-many relationships
+user_learning_paths = Table('user_learning_paths', Base.metadata,
+                            Column('user_id', ForeignKey('users.id'), primary_key=True),
+                            Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True))
+
+learning_path_courses = Table('learning_path_courses', Base.metadata,
+                              Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True),
+                              Column('course_id', ForeignKey('courses.id'), primary_key=True))
 
 
 class ServiceLine(Base):
@@ -41,6 +50,8 @@ class User(Base):
     role_name = Column(String, ForeignKey('roles.RoleName'))
     service_line_id = Column(Integer, ForeignKey('service_line.id'))
     total_training_hours = Column(Integer, default=0)
+    counselor_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # References another user as a counselor
+    entity = Column(String)  # Added to manage multi-tenancy and service line filtering
 
     # Relationships
     role = relationship('Role', back_populates='users')
@@ -48,7 +59,9 @@ class User(Base):
     courses_assigned = relationship('Course', secondary=association_table, back_populates='users_assigned')
     enrollments = relationship('Enrollment', back_populates='user')
     feedbacks = relationship('Feedback', back_populates='user')
-    learning_paths = relationship('LearningPath', secondary='user_learning_paths', back_populates='users')
+    learning_paths = relationship('LearningPath', secondary=user_learning_paths, back_populates='users')
+    counselor = relationship('User', remote_side=[id], backref='counselees')
+    __table_args__ = (Index('idx_user_email', 'email'),)
 
 
 class File(Base):
@@ -69,19 +82,23 @@ class Course(Base):
     created_by = Column(Integer, ForeignKey('users.id'))
     service_line_id = Column(Integer, ForeignKey('service_line.id'))
     expected_time_to_complete = Column(Integer)
+    difficulty_level = Column(String, default='0')  # Added to store difficulty level of the course
+    tags = Column(String, default='none')  # Added to facilitate better categorization and filtering
     ratings = Column(Integer, default=0)
-    is_approved = Column(Boolean, default=False)
+    status = Column(String, default='approval pending')
     creation_date = Column(DateTime, default=func.now())  # To track when a course was created
-    approved_date = Column(DateTime, default=func.now())  # To track when a course was created
+    approved_date = Column(DateTime, default=None)  # To track when a course was created
     approved_by = Column(Integer, ForeignKey('users.id'))
 
     thumbnail_file_id = Column(String, ForeignKey('files.FileID'))
 
     # Relationships
+    approver = relationship('User', foreign_keys=[approved_by], backref='approved_courses')
     service_line = relationship('ServiceLine', back_populates='courses')
     chapters = relationship('Chapter', back_populates='course')
     users_assigned = relationship('User', secondary=association_table, back_populates='courses_assigned')
     enrollments = relationship('Enrollment', back_populates='course')
+    learning_paths = relationship('LearningPath', secondary=learning_path_courses, back_populates='courses')
 
 
 class Chapter(Base):
@@ -89,6 +106,7 @@ class Chapter(Base):
     id = Column(Integer, primary_key=True)
     course_id = Column(Integer, ForeignKey('courses.id'))
     title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
     # Relationships
     course = relationship('Course', back_populates='chapters')
     contents = relationship('Content', back_populates='chapter')
@@ -115,7 +133,7 @@ class Enrollment(Base):
     year = Column(Integer)  # The year of enrollment, can be set based on enroll_date
     due_date = Column(Date)
     status = Column(String, default="Enrolled")
-    completion_percentage = Column(Numeric)  # Represents overall course completion percentage
+    completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
     # Relationships
     user = relationship('User', back_populates='enrollments')
     course = relationship('Course', back_populates='enrollments')
@@ -153,8 +171,8 @@ class LearningPath(Base):
     name = Column(String, nullable=False)
     expiry_date = Column(Date)
     # Relationships
-    users = relationship('User', secondary='user_learning_paths', back_populates='learning_paths')
-    courses = relationship('Course', secondary='learning_path_courses', back_populates='learning_paths')
+    users = relationship('User', secondary=user_learning_paths, back_populates='learning_paths')
+    courses = relationship('Course', secondary=learning_path_courses, back_populates='learning_paths')
 
 
 class Feedback(Base):
@@ -169,15 +187,3 @@ class Feedback(Base):
     course = relationship('Course', backref='feedbacks')
 
 
-# Secondary tables for many-to-many relationships
-user_learning_paths = Table('user_learning_paths', Base.metadata,
-                            Column('user_id', ForeignKey('users.id'), primary_key=True),
-                            Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True))
-
-learning_path_courses = Table('learning_path_courses', Base.metadata,
-                              Column('learning_path_id', ForeignKey('learning_paths.id'), primary_key=True),
-                              Column('course_id', ForeignKey('courses.id'), primary_key=True))
-
-
-class FileMetadata:
-    pass

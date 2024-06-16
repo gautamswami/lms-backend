@@ -10,6 +10,7 @@ import crud
 import schemas
 from auth import oauth2_scheme
 from dependencies import get_db
+from models import User
 from schemas import UserCreate, UserInDB
 
 app = APIRouter(prefix='/auth', tags=['auth'])
@@ -42,15 +43,15 @@ def login_for_access_token(response: Response,
     return user
 
 
-@app.post("/register", response_model=UserInDB)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    print("started")
-    db_user = crud.get_user_by_email(db, email=user.Email)
+@app.post("/register", response_model=schemas.UserDisplay)
+def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
-        print("User found")
-
         raise HTTPException(status_code=400, detail="Email already registered")
-    print("Creating user")
+
+    counselor = db.query(User).filter(User.id == user.counselor_id).first()
+    if not counselor or counselor.role_name != "Instructor":
+        raise HTTPException(status_code=400, detail="Invalid counselor")
 
     return crud.create_user(db=db, user=user)
 

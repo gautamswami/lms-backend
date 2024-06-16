@@ -1,14 +1,19 @@
+from datetime import datetime, timedelta
+from fastapi import HTTPException
 from typing import Optional, Type
 
 from sqlalchemy.orm import Session
 
-from models import User, Role
+from models import User, Role, Course, Enrollment
 from schemas import UserCreate, UserUpdate
 
 
 def add_roles_if_not_exists(db: Session):
-    existing_roles = db.query(Role.RoleName).all()  # Fetch all existing role names
-    existing_roles = [role.RoleName for role in existing_roles]  # Flatten the list of tuples
+    # Fetch all existing roles as Role objects, not just the names
+    existing_roles = db.query(Role).all()
+
+    # Create a set of existing role names for easy lookup
+    existing_role_names = {role.RoleName for role in existing_roles}
 
     roles_to_add = [
         Role(RoleName='Super Admin', Description='Manages the whole system'),
@@ -17,11 +22,12 @@ def add_roles_if_not_exists(db: Session):
         Role(RoleName='Employee', Description='Can view and enroll in courses')
     ]
 
+    # Add new roles only if they are not already present
     for role in roles_to_add:
-        if role.RoleName not in existing_roles:
-            db.add(role)  # Only add the role if it's not already in the database
+        if role.RoleName not in existing_role_names:
+            db.add(role)
 
-    db.commit()  # Commit all the new roles at once
+    db.commit()  # Commit all changes at once
 
 
 def get_user(db: Session, user_id: int):
@@ -31,9 +37,9 @@ def get_user(db: Session, user_id: int):
 def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
-        db_user.dp_file_id=user.dp_file_id
+        db_user.dp_file_id = user.dp_file_id
         db_user.email = user.email
-        db_user.designation=user.designation
+        db_user.designation = user.designation
         db_user.role_name = user.role_name
         db_user.service_line_id = user.service_line_id
         db.commit()
@@ -55,18 +61,27 @@ def get_user_by_email(db: Session, email: str) -> Optional[Type[User]]:
 
 def create_user(db: Session, user: UserCreate) -> User:
     from auth import get_password_hash
-    db_user = User(dp_file_id=user.dp_file_id,
-                first_name=user.first_name,
-                   last_name=user.last_name,
-                   email=user.Email,
-                   password=get_password_hash(user.password),
-                   employee_id=user.employee_id,
-                   designation=user.designation,
-                   role_name=user.role_name,
-                   service_line_id=user.service_line_id,       
-
-                   )
+    db_user = User(**user.dict())
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    for user_id in user_ids:
+        enrollment = Enrollment(
+            user_id=user_id,
+            course_id=course_id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course.expected_time_to_complete),
+            year=datetime.now().year,
+            status="Enrolled"
+        )
+        db.add(enrollment)
+    db.commit()
+    return {"message": "Users successfully enrolled", "course_id": course_id, "user_ids": user_ids}
