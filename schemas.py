@@ -47,10 +47,10 @@ class EnrollmentDisplay(EnrollmentCreate):
 
 # Schemas for User related operations (if needed)
 class UserBase(BaseModel):
-    FirstName: str
-    LastName: str
-    Email: EmailStr
-    RoleName: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    role_name: str
 
 
 class UserDisplay(UserBase):
@@ -62,10 +62,9 @@ class UserDisplay(UserBase):
 
 class UserUpdate(BaseModel):
     dp_file_id: str
-    email:str
-    designation:str
-    role_name:str
-    service_line_id:int
+    email: str
+    designation: str
+    service_line_id: int
 
     class Config:
         from_attributes = True
@@ -80,29 +79,17 @@ class TokenData(BaseModel):
     username: str = None
 
 
-class UserBase(BaseModel):
-    UserName: str
-    Email: str
-    Role: str
-
-
 class UserCreate(UserBase):
     dp_file_id: str
-    first_name: str
-    last_name:str
-    email:str
-    password:str
-    employee_id:str
-    designation:str
-    role_name:str
-    service_line_id:int
-
+    password: str
+    employee_id: str
+    designation: str
+    service_line_id: int
 
 
 class UserInDB(UserBase):
     UserID: int
     Role: str
-    Credits: int
 
     class Config:
         from_attributes = True
