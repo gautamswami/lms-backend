@@ -25,23 +25,24 @@ def add_roles_if_not_exists(db: Session):
 
 
 def get_user(db: Session, user_id: int):
-    return db.query(User).filter(User.UserID == user_id).first()
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def update_user(db: Session, user_id: int, user: UserUpdate):
-    db_user = db.query(User).filter(User.UserID == user_id).first()
+    db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
-        db_user.UserName = user.UserName
-        db_user.Email = user.Email
-        db_user.Role = user.Role
-        db_user.Credits = user.Credits
+        db_user.dp_file_id=user.dp_file_id
+        db_user.email = user.email
+        db_user.designation=user.designation
+        db_user.role_name = user.role_name
+        db_user.service_line_id = user.service_line_id
         db.commit()
         db.refresh(db_user)
     return db_user
 
 
 def delete_user(db: Session, user_id: int):
-    db_user = db.query(User).filter(User.UserID == user_id).first()
+    db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
         db.delete(db_user)
         db.commit()
@@ -49,15 +50,22 @@ def delete_user(db: Session, user_id: int):
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[Type[User]]:
-    return db.query(User).filter(User.Email == email).first()
+    return db.query(User).filter(User.email == email).first()
 
 
 def create_user(db: Session, user: UserCreate) -> User:
     from auth import get_password_hash
-    db_user = User(UserName=user.UserName,
-                   Email=user.Email,
-                   Password=get_password_hash(user.Password),
-                   Role=user.Role)
+    db_user = User(dp_file_id=user.dp_file_id,
+                first_name=user.first_name,
+                   last_name=user.last_name,
+                   email=user.Email,
+                   password=get_password_hash(user.password),
+                   employee_id=user.employee_id,
+                   designation=user.designation,
+                   role_name=user.role_name,
+                   service_line_id=user.service_line_id,       
+
+                   )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

@@ -15,7 +15,7 @@ class CourseDisplay(CourseCreate):
     Rating: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ChapterCreate(BaseModel):
@@ -28,7 +28,7 @@ class ChapterDisplay(ChapterCreate):
     CourseID: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class EnrollmentCreate(BaseModel):
@@ -42,7 +42,7 @@ class EnrollmentDisplay(EnrollmentCreate):
     TimeSpent: int  # Time spent in minutes
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Schemas for User related operations (if needed)
@@ -57,17 +57,18 @@ class UserDisplay(UserBase):
     UserID: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserUpdate(BaseModel):
-    UserName: str
-    Email: EmailStr
-    Role: str
-    Credits: int
+    dp_file_id: str
+    email:str
+    designation:str
+    role_name:str
+    service_line_id:int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Token(BaseModel):
@@ -86,8 +87,16 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    Password: str
-    Role: str
+    dp_file_id: str
+    first_name: str
+    last_name:str
+    email:str
+    password:str
+    employee_id:str
+    designation:str
+    role_name:str
+    service_line_id:int
+
 
 
 class UserInDB(UserBase):
@@ -96,7 +105,7 @@ class UserInDB(UserBase):
     Credits: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
