@@ -6,6 +6,7 @@ from database import engine
 from routers.auth_routers import app as auth_router
 from routers.um_routers import app as um_routers
 from routers.file_routers import app as file_routers
+from routers.course_routers import app as courses_routers
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(um_routers)
 app.include_router(file_routers)
+app.include_router(courses_routers)
 
 if __name__ == "__main__":
     import uvicorn

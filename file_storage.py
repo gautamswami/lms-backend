@@ -1,12 +1,12 @@
 import os
 import uuid
-from typing import Optional
+from typing import Optional, Type
 
 from fastapi import UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from models import FileMetadata
+from models import File
 
 
 class FileStorage:
@@ -14,9 +14,9 @@ class FileStorage:
         self.directory = directory
         os.makedirs(directory, exist_ok=True)
 
-    def save_file(self, file: UploadFile, db: Session) -> FileMetadata:
+    def save_file(self, file: UploadFile, db: Session, type='Course content') -> File:
         content_type = file.content_type
-        allowed_types = {'application/vnd.ms-powerpoint', 'video/mp4', 'application/pdf', 'application/msword', 'audio/mpeg'}
+        allowed_types = {'application/vnd.ms-powerpoint', 'video/mp4', 'application/pdf', 'application/msword', 'audio/mpeg', 'image/jpeg', 'image/png', 'image/gif'}
 
         if content_type not in allowed_types:
             raise ValueError("Unsupported file type.")
@@ -29,19 +29,20 @@ class FileStorage:
             for chunk in file.file:
                 buffer.write(chunk)
 
-        file_metadata = FileMetadata(
-            id=file_id,
-            filename=file.filename,
-            content_type=content_type,
-            path=file_path
+        file_metadata = File(
+            FileID=file_id,
+            FileName=file.filename,
+            FileType=content_type,
+            FilePath=file_path,
+            type=type
         )
         db.add(file_metadata)
         db.commit()
         db.refresh(file_metadata)
         return file_metadata
 
-    def get_file_metadata(self, file_id: str, db: Session) -> FileMetadata:
-        file_metadata = db.query(FileMetadata).filter(FileMetadata.id == file_id).first()
+    def get_file_metadata(self, file_id: str, db: Session) -> Type[File]:
+        file_metadata = db.query(File).filter(File.FileID == file_id).first()
         if not file_metadata:
             raise HTTPException(status_code=404, detail="File not found.")
         return file_metadata
@@ -67,7 +68,7 @@ class FileStorage:
 
     def get_streaming_response(self, file_id: str, db: Session, range_header: Optional[str]) -> StreamingResponse:
         file_metadata = self.get_file_metadata(file_id, db)
-        file_path = file_metadata.path
+        file_path = file_metadata.FilePath
 
         start, end = 0, None
         if range_header:
@@ -81,6 +82,6 @@ class FileStorage:
             'Content-Range': f'bytes {start}-{end}/{file_size}',
             'Accept-Ranges': 'bytes',
             'Content-Length': str(end - start + 1),
-            'Content-Type': file_metadata.content_type
+            'Content-Type': file_metadata.FileType
         }
         return StreamingResponse(chunks, headers=headers, status_code=206)
