@@ -16,7 +16,7 @@ from schemas import UserCreate, UserInDB
 app = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@app.post("/token", response_model=schemas.UserBase)
+@app.post("/token", response_model=schemas.Token)
 def login_for_access_token(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -42,9 +42,9 @@ def login_for_access_token(
         samesite="none",  # Ensure this is set to 'none'
         secure=True,
     )
-    # return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer"}
 
-    return user
+    # return user
 
 
 @app.post("/register", response_model=schemas.UserDisplay)
