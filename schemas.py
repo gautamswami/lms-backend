@@ -15,7 +15,9 @@ class UserBase(BaseModel):
 class UserDisplay(UserBase):
     id: int
     counselor: Optional[UserBase]
-    total_training_hours: int  # Add total training hours to match ORM and requirement document
+    total_training_hours: (
+        int  # Add total training hours to match ORM and requirement document
+    )
 
     class Config:
         from_attributes = True
@@ -48,7 +50,6 @@ class UserInDB(UserBase):
 
     class Config:
         from_attributes = True
-
 
 
 class UserLogin(BaseModel):
@@ -115,7 +116,9 @@ class CourseDisplay(CourseCreate):
     class Config:
         from_attributes = True
 
+
 # ############################################ Course ENDS HERE ####################################################
+
 
 # Admin specific views
 class AdminCourseView(CourseDisplay):
@@ -126,6 +129,7 @@ class AdminCourseView(CourseDisplay):
     class Config:
         orm_mode = True
 
+
 class AdminUserView(UserDisplay):
     # Detailed view for admin to manage user details
     compliance_hours: int
@@ -135,6 +139,7 @@ class AdminUserView(UserDisplay):
     class Config:
         orm_mode = True
 
+
 # Instructor specific views
 class InstructorCourseView(CourseDisplay):
     # Similar to AdminCourseView but tailored for instructors
@@ -143,12 +148,16 @@ class InstructorCourseView(CourseDisplay):
     class Config:
         orm_mode = True
 
+
 class InstructorUserView(UserDisplay):
     # View for instructors to see user details in their courses
-    compliance_hours: int  # Instructors need to track compliance hours for their students
+    compliance_hours: (
+        int  # Instructors need to track compliance hours for their students
+    )
 
     class Config:
         orm_mode = True
+
 
 # Trainee specific views
 class TraineeCourseView(CourseDisplay):
@@ -158,6 +167,7 @@ class TraineeCourseView(CourseDisplay):
     class Config:
         orm_mode = True
 
+
 class TraineeProfileView(UserDisplay):
     # Specific view for trainees that includes personal progress and assigned counselor
     total_training_hours: int
@@ -166,10 +176,12 @@ class TraineeProfileView(UserDisplay):
     class Config:
         orm_mode = True
 
+
 # Learning Path Models for assigning and displaying learning paths
 class LearningPathBase(BaseModel):
     name: str
     expiry_date: Optional[datetime]  # Date when the learning path expires
+
 
 class LearningPathDisplay(LearningPathBase):
     id: int
@@ -178,6 +190,7 @@ class LearningPathDisplay(LearningPathBase):
     class Config:
         orm_mode = True
 
+
 class AssignLearningPath(BaseModel):
     learning_path_id: int
     user_id: int
@@ -185,6 +198,7 @@ class AssignLearningPath(BaseModel):
 
     class Config:
         orm_mode = True
+
 
 # Feedback Models
 class FeedbackCreate(BaseModel):
@@ -196,13 +210,16 @@ class FeedbackCreate(BaseModel):
     class Config:
         orm_mode = True
 
+
 class FeedbackDisplay(FeedbackCreate):
     id: int  # Feedback identifier
 
     class Config:
         orm_mode = True
 
+
 ########
+
 
 class EnrollmentRequest(BaseModel):
     course_id: int
@@ -215,9 +232,8 @@ class EnrollmentRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user_details: UserDisplay
 
 
 class TokenData(BaseModel):
     username: str = None
-
-
