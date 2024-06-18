@@ -76,13 +76,13 @@ def read_users_me(
     authorization: Annotated[Union[str, None], Header()] = None,
     db: Session = Depends(get_db),
 ):
-    token = auth(authorization)
+    token = token_auth(authorization)
     token_data = auth.verify_token(token)
     user = crud.get_user_by_email(db, email=token_data.username)
     return user
 
 
-def auth(authorization):
+def token_auth(authorization):
     if not authorization:
         raise HTTPException(status_code=400, detail="Authorization Is Required")
     # Getting token from the header
