@@ -13,14 +13,18 @@ from dependencies import get_db
 from models import User
 from schemas import UserCreate, UserInDB
 
-app = APIRouter(prefix='/auth', tags=['auth'])
+app = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @app.post("/token", response_model=schemas.UserBase)
-def login_for_access_token(response: Response,
-                           form_data: OAuth2PasswordRequestForm = Depends(),
-                           db: Session = Depends(get_db)):
-    user = auth.authenticate_user(db, email=form_data.username, password=form_data.password)
+def login_for_access_token(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    user = auth.authenticate_user(
+        db, email=form_data.username, password=form_data.password
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,14 +33,14 @@ def login_for_access_token(response: Response,
         )
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
-        data={"sub": user.Email}, expires_delta=access_token_expires
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
         samesite="none",  # Ensure this is set to 'none'
-        secure=True
+        secure=True,
     )
     # return {"access_token": access_token, "token_type": "bearer"}
 
@@ -62,7 +66,11 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 #     access_token: Union[str, None] = Cookie(None)
 # ):
 @app.get("/users/me", response_model=schemas.UserBase)
-def read_users_me(response: Response, access_token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def read_users_me(
+    response: Response,
+    access_token: Union[str, None] = Cookie(None),
+    db: Session = Depends(get_db),
+):
     print(access_token)
     if access_token:
         token = access_token.replace("Bearer ", "")
@@ -77,8 +85,4 @@ def read_users_me(response: Response, access_token: str = Depends(oauth2_scheme)
             raise credentials_exception
         return user
     else:
-        return {
-            "UserName": "NONE",
-            "Email": "NONE",
-            "Role": "NONE"
-        }
+        return {"UserName": "NONE", "Email": "NONE", "Role": "NONE"}

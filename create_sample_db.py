@@ -4,10 +4,24 @@ from datetime import datetime, timedelta
 import os
 import uuid
 from models import (
-    Base, User, Role, Course, Chapter, Content, Enrollment, Progress, File, ServiceLine, LearningPath, Feedback
+    Base,
+    User,
+    Role,
+    Course,
+    Chapter,
+    Content,
+    Enrollment,
+    Progress,
+    File,
+    ServiceLine,
+    LearningPath,
+    Feedback,
 )
+from passlib.context import CryptContext
 
-DATABASE_URL = "sqlite:///./test.db"  # Update this to your actual database URL
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+DATABASE_URL = "sqlite:///./lms.db"  # Update this to your actual database URL
 
 # Create the engine and session
 engine = create_engine(DATABASE_URL)
@@ -16,6 +30,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create tables
 Base.metadata.create_all(bind=engine)
 
+
 def create_sample_data():
     db = SessionLocal()
     try:
@@ -23,8 +38,11 @@ def create_sample_data():
         roles = [
             Role(RoleName="Super Admin", Description="Manages the whole system"),
             Role(RoleName="Admin", Description="Manages a specific LOB or department"),
-            Role(RoleName="Instructor", Description="Manages own courses and can propose new ones"),
-            Role(RoleName="Employee", Description="Can view and enroll in courses")
+            Role(
+                RoleName="Instructor",
+                Description="Manages own courses and can propose new ones",
+            ),
+            Role(RoleName="Employee", Description="Can view and enroll in courses"),
         ]
         db.add_all(roles)
         db.commit()
@@ -32,54 +50,89 @@ def create_sample_data():
         # Create service lines
         service_lines = [
             ServiceLine(name="Software Development"),
-            ServiceLine(name="Data Science")
+            ServiceLine(name="Data Science"),
         ]
         db.add_all(service_lines)
         db.commit()
 
         # Create users
         super_admin = User(
-            email='superadmin@example.com', password='password', first_name='Super', last_name='Admin',
-            role_name='Super Admin', employee_id='SA001', designation='Chief', service_line_id=service_lines[0].id
+            email="superadmin@example.com",
+            password=pwd_context.hash("password"),
+            first_name="Super",
+            last_name="Admin",
+            role_name="Super Admin",
+            employee_id="SA001",
+            designation="Chief",
+            service_line_id=service_lines[0].id,
         )
         admin = User(
-            email='admin@example.com', password='password', first_name='Admin', last_name='User',
-            role_name='Admin', employee_id='AD001', designation='Manager', service_line_id=service_lines[0].id
+            email="admin@example.com",
+            password=pwd_context.hash("password"),
+            first_name="Admin",
+            last_name="User",
+            role_name="Admin",
+            employee_id="AD001",
+            designation="Manager",
+            service_line_id=service_lines[0].id,
         )
         instructor = User(
-            email='instructor@example.com', password='password', first_name='Instructor', last_name='User',
-            role_name='Instructor', employee_id='IN001', designation='Lead', service_line_id=service_lines[0].id
+            email="instructor@example.com",
+            password=pwd_context.hash("password"),
+            first_name="Instructor",
+            last_name="User",
+            role_name="Instructor",
+            employee_id="IN001",
+            designation="Lead",
+            service_line_id=service_lines[0].id,
         )
-
 
         db.add_all([super_admin, admin, instructor])
         db.commit()
 
         employee = User(
-            email='employee@example.com', password='password', first_name='Employee', last_name='User',
-            role_name='Employee', employee_id='EM001', designation='Developer', service_line_id=service_lines[0].id,
-            counselor_id=instructor.id
+            email="employee@example.com",
+            password=pwd_context.hash("password"),
+            first_name="Employee",
+            last_name="User",
+            role_name="Employee",
+            employee_id="EM001",
+            designation="Developer",
+            service_line_id=service_lines[0].id,
+            counselor_id=instructor.id,
         )
 
         NONE = User(
-            email='admin@abc.com', password='password', first_name='Employee', last_name='User',
-            role_name='Admin', employee_id='EM001', designation='Developer', service_line_id=service_lines[0].id,
-            counselor_id=instructor.id
+            email="admin@abc.com",
+            password=pwd_context.hash("password"),
+            first_name="Employee",
+            last_name="User",
+            role_name="Admin",
+            employee_id="EM001",
+            designation="Developer",
+            service_line_id=service_lines[0].id,
+            counselor_id=instructor.id,
         )
-
 
         db.add_all([employee, NONE])
         db.commit()
 
-
         # Create courses
         course1 = Course(
-            title="Intro to Python", description="Learn Python basics", category="Programming", created_by=admin.id,
-            service_line_id=service_lines[0].id, expected_time_to_complete=10
+            title="Intro to Python",
+            description="Learn Python basics",
+            category="Programming",
+            created_by=admin.id,
+            service_line_id=service_lines[0].id,
+            expected_time_to_complete=10,
         )
         course2 = Course(
-            title="Advanced Data Science", description="Deep dive into data science techniques", category="Data Science",
-            created_by=instructor.id, service_line_id=service_lines[1].id, expected_time_to_complete=20
+            title="Advanced Data Science",
+            description="Deep dive into data science techniques",
+            category="Data Science",
+            created_by=instructor.id,
+            service_line_id=service_lines[1].id,
+            expected_time_to_complete=20,
         )
 
         db.add_all([course1, course2])
@@ -87,10 +140,14 @@ def create_sample_data():
 
         # Create chapters
         chapter1 = Chapter(
-            course_id=course1.id, title="Python Basics", description="Introduction to Python programming"
+            course_id=course1.id,
+            title="Python Basics",
+            description="Introduction to Python programming",
         )
         chapter2 = Chapter(
-            course_id=course1.id, title="Advanced Python", description="Advanced concepts in Python programming"
+            course_id=course1.id,
+            title="Advanced Python",
+            description="Advanced concepts in Python programming",
         )
 
         db.add_all([chapter1, chapter2])
@@ -98,10 +155,16 @@ def create_sample_data():
 
         # Create content
         content1 = Content(
-            chapter_id=chapter1.id, title="Python Installation", content_type="video", file_id=str(uuid.uuid4())
+            chapter_id=chapter1.id,
+            title="Python Installation",
+            content_type="video",
+            file_id=str(uuid.uuid4()),
         )
         content2 = Content(
-            chapter_id=chapter1.id, title="Hello World", content_type="video", file_id=str(uuid.uuid4())
+            chapter_id=chapter1.id,
+            title="Hello World",
+            content_type="video",
+            file_id=str(uuid.uuid4()),
         )
 
         db.add_all([content1, content2])
@@ -109,12 +172,18 @@ def create_sample_data():
 
         # Create enrollments
         enrollment1 = Enrollment(
-            user_id=employee.id, course_id=course1.id, enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete), year=datetime.now().year
+            user_id=employee.id,
+            course_id=course1.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete),
+            year=datetime.now().year,
         )
         enrollment2 = Enrollment(
-            user_id=employee.id, course_id=course2.id, enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete), year=datetime.now().year
+            user_id=employee.id,
+            course_id=course2.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            year=datetime.now().year,
         )
 
         db.add_all([enrollment1, enrollment2])
@@ -122,10 +191,16 @@ def create_sample_data():
 
         # Create progress
         progress1 = Progress(
-            enrollment_id=enrollment1.id, last_chapter_id=chapter1.id, last_content_id=content1.id, last_accessed=datetime.now()
+            enrollment_id=enrollment1.id,
+            last_chapter_id=chapter1.id,
+            last_content_id=content1.id,
+            last_accessed=datetime.now(),
         )
         progress2 = Progress(
-            enrollment_id=enrollment2.id, last_chapter_id=chapter2.id, last_content_id=content2.id, last_accessed=datetime.now()
+            enrollment_id=enrollment2.id,
+            last_chapter_id=chapter2.id,
+            last_content_id=content2.id,
+            last_accessed=datetime.now(),
         )
 
         db.add_all([progress1, progress2])
@@ -133,10 +208,18 @@ def create_sample_data():
 
         # Create files
         file1 = File(
-            FileID=str(uuid.uuid4()), FileName="intro_python.mp4", FilePath="/files/intro_python.mp4", FileType="video/mp4", type="Course content"
+            FileID=str(uuid.uuid4()),
+            FileName="intro_python.mp4",
+            FilePath="/files/intro_python.mp4",
+            FileType="video/mp4",
+            type="Course content",
         )
         file2 = File(
-            FileID=str(uuid.uuid4()), FileName="advanced_data_science.pdf", FilePath="/files/advanced_data_science.pdf", FileType="application/pdf", type="Course content"
+            FileID=str(uuid.uuid4()),
+            FileName="advanced_data_science.pdf",
+            FilePath="/files/advanced_data_science.pdf",
+            FileType="application/pdf",
+            type="Course content",
         )
 
         db.add_all([file1, file2])
@@ -144,10 +227,16 @@ def create_sample_data():
 
         # Create feedback
         feedback1 = Feedback(
-            user_id=employee.id, course_id=course1.id, description="Great course!", rating=5
+            user_id=employee.id,
+            course_id=course1.id,
+            description="Great course!",
+            rating=5,
         )
         feedback2 = Feedback(
-            user_id=employee.id, course_id=course2.id, description="Very informative.", rating=4
+            user_id=employee.id,
+            course_id=course2.id,
+            description="Very informative.",
+            rating=4,
         )
 
         db.add_all([feedback1, feedback2])
@@ -155,7 +244,8 @@ def create_sample_data():
 
         # Create learning paths
         learning_path1 = LearningPath(
-            name="Python Developer Path", expiry_date=datetime.now() + timedelta(days=365)
+            name="Python Developer Path",
+            expiry_date=datetime.now() + timedelta(days=365),
         )
         learning_path1.courses.append(course1)
         learning_path1.users.append(employee)
@@ -171,5 +261,6 @@ def create_sample_data():
     finally:
         db.close()
 
-if __name__ == "__main__":
-    create_sample_data()
+
+# if __name__ == "__main__":
+create_sample_data()
