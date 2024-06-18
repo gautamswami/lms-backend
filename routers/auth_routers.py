@@ -11,14 +11,14 @@ import schemas
 from auth import oauth2_scheme
 from dependencies import get_db
 from models import User
-from schemas import UserCreate, UserInDB
+from schemas import UserCreate, UserInDB, Token, UserDisplay
 import requests
 from fastapi import FastAPI, Request, HTTPException, Header, Body
 
 app = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@app.post("/token")
+@app.post("/token", response_model=Token)
 def login_for_access_token(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -37,17 +37,14 @@ def login_for_access_token(
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    response = JSONResponse(
-        status_code=200, content={"access_token": access_token, "token_type": "bearer"}
+
+    return Token(
+        **{
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_details": UserDisplay.from_orm(user),
+        }
     )
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        samesite="none",  # Ensure this is set to 'none'
-        secure=True,
-    )
-    return response
 
     # return user
 
