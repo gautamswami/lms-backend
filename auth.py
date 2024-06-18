@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -21,7 +21,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 async def get_current_user(
-    access_token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    authorization: Annotated[Union[str, None], Header()] = None,
+    db: Session = Depends(get_db),
 ):
     # async def get_current_user(
     #     token: Union[str, None] = Cookie(None), db: Session = Depends(get_db)
@@ -32,6 +33,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        access_token = authorization.replace("Bearer ", "")
         payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         # username = "admin@abc.com"
