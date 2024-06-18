@@ -17,10 +17,7 @@ create_sample_data()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://172.16.1.13:3000",
-        "http://localhost",
-        "http://localhost:3000",
-        "http://172.16.1.219:8800",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],
