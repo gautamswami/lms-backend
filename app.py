@@ -7,13 +7,14 @@ from routers.auth_routers import app as auth_router
 from routers.um_routers import app as um_routers
 from routers.file_routers import app as file_routers
 from routers.course_routers import app as courses_routers
-from create_sample_db import create_sample_data
+
+# from create_sample_db import create_sample_data
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-create_sample_data()
+# create_sample_data()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
