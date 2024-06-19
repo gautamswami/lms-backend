@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 
 from models import User, Role, Course, Enrollment
 from schemas import UserCreate, UserUpdate
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
+from typing import Dict, Any, List
 
 
 def add_roles_if_not_exists(db: Session):
@@ -16,10 +19,13 @@ def add_roles_if_not_exists(db: Session):
     existing_role_names = {role.RoleName for role in existing_roles}
 
     roles_to_add = [
-        Role(RoleName='Super Admin', Description='Manages the whole system'),
-        Role(RoleName='Admin', Description='Manages a specific LOB or department'),
-        Role(RoleName='Instructor', Description='Manages own courses and can propose new ones'),
-        Role(RoleName='Employee', Description='Can view and enroll in courses')
+        Role(RoleName="Super Admin", Description="Manages the whole system"),
+        Role(RoleName="Admin", Description="Manages a specific LOB or department"),
+        Role(
+            RoleName="Instructor",
+            Description="Manages own courses and can propose new ones",
+        ),
+        Role(RoleName="Employee", Description="Can view and enroll in courses"),
     ]
 
     # Add new roles only if they are not already present
@@ -34,14 +40,36 @@ def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 
+def get_users_by_filter(db: Session, filters: Dict[str, Any]) -> List[User]:
+    query = db.query(User)
+    conditions = []
+    for attr, condition in filters.items():
+        column = getattr(User, attr)
+        if isinstance(condition, dict):
+            for operator, value in condition.items():
+                if operator == "eq":
+                    conditions.append(column == value)
+                elif operator == "lt":
+                    conditions.append(column < value)
+                elif operator == "gt":
+                    conditions.append(column > value)
+                # Add more operators as needed
+        else:
+            conditions.append(column == condition)
+    return query.filter(and_(*conditions)).all()
+
+
 def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
-        db_user.dp_file_id = user.dp_file_id
-        db_user.email = user.email
-        db_user.designation = user.designation
-        db_user.role_name = user.role_name
-        db_user.service_line_id = user.service_line_id
+        if db_user.dp_file_id:
+            db_user.dp_file_id = user.dp_file_id
+        if db_user.email:
+            db_user.email = user.email
+        if db_user.designation:
+            db_user.designation = user.designation
+        if db_user.service_line_id:
+            db_user.service_line_id = user.service_line_id
         db.commit()
         db.refresh(db_user)
     return db_user
@@ -61,6 +89,7 @@ def get_user_by_email(db: Session, email: str) -> Optional[Type[User]]:
 
 def create_user(db: Session, user: UserCreate) -> User:
     from auth import get_password_hash
+
     db_user = User(**user.dict())
     db.add(db_user)
     db.commit()
@@ -80,8 +109,12 @@ def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course.expected_time_to_complete),
             year=datetime.now().year,
-            status="Enrolled"
+            status="Enrolled",
         )
         db.add(enrollment)
     db.commit()
-    return {"message": "Users successfully enrolled", "course_id": course_id, "user_ids": user_ids}
+    return {
+        "message": "Users successfully enrolled",
+        "course_id": course_id,
+        "user_ids": user_ids,
+    }
