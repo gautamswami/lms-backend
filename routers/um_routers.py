@@ -72,48 +72,36 @@ def reset_password(token: str, new_password: str, db: Session = Depends(get_db))
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    authorization: Annotated[
-        Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
+    current_user: User = Depends(auth.get_current_user),
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    access_token = authorization.replace("Bearer ", "")
-    print("\n\n\nGot Access token")
-    token_data = auth.verify_token(access_token)
-    logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    db_user = crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+    try:
+        db_user = crud.get_user_by_email(db, email=user.email)
+        if db_user:
+            raise HTTPException(status_code=403, detail="Email already registered")
+        return crud.create_user(db=db, user=user)
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
 @app.get("/users/{user_id}", response_model=UserDisplay)
 def read_user(
     user_id: int,
     db: Session = Depends(get_db),
-    authorization: Annotated[
-        Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
+    current_user: User = Depends(auth.get_current_user),
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    access_token = authorization.replace("Bearer ", "")
-    token_data = auth.verify_token(access_token)
-    logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    print(logged_in_user.email, logged_in_user.role_name)
-    if logged_in_user.role_name != "Admin":
-        raise HTTPException(status_code=404, detail="unauthorised ")
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        if current_user.role_name not in ["Admin", "Super Admin"]:
+            raise HTTPException(status_code=401, detail="Unauthorized ")
+        db_user = crud.get_user(db, user_id=user_id)
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
 @app.put("/users/{user_id}", response_model=UserDisplay)
@@ -121,42 +109,38 @@ def update_user(
     user_id: int,
     user: UserUpdate,
     db: Session = Depends(get_db),
-    authorization: Annotated[
-        Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
+    current_user: User = Depends(auth.get_current_user),
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    access_token = authorization.replace("Bearer ", "")
-    token_data = auth.verify_token(access_token)
-    logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    print(user.__dict__)
-    update_data = user.dict(exclude_unset=True)
-    db_user = crud.update_user(db, user_id=user_id, user=update_data)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        print(1)
+        update_data = user.dict(exclude_unset=True)
+        print(2)
+        db_user = crud.update_user(db, user_id=user_id, user=update_data)
+        print(3)
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
 @app.delete("/users/{user_id}", response_model=UserDisplay)
 def delete_user(
-    user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    token = token.replace("Bearer ", "")
-    token_data = auth.verify_token(token)
-    logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    db_user = crud.delete_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        db_user = crud.delete_user(db, user_id=user_id)
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
 @app.get("/get_all", response_model=UM_send_all)
@@ -175,18 +159,6 @@ def get_all(
     service_lines = db.query(ServiceLine).all()
     roles = db.query(ExternalRoles).all()
 
-    # return UM_send_all(
-    #     instructors=[InstructorDisplay.from_orm(user) for user in instructors],
-    #     designations=[
-    #         DesignationModel.from_orm(designation) for designation in designations
-    #     ],
-    #     service_lines=[
-    #         ServiceLineModel.from_orm(service_line) for service_line in service_lines
-    #     ],
-    #     roles=[ExternalRoleModel.from_orm(role) for role in roles],
-    # )
-
-    # Convert instructors to InstructorDisplay with team members
     instructor_displays = []
     for instructor in instructors:
         team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
