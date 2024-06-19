@@ -11,7 +11,8 @@ import crud
 from auth import oauth2_scheme
 from config import EMAIL_ADDRESS, EMAIL_PASSWORD
 from dependencies import get_db
-from schemas import UserCreate, UserUpdate, UserDisplay
+from schemas import *
+from models import *
 from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status, Cookie
@@ -156,3 +157,100 @@ def delete_user(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
+
+@app.get("/get_all", response_model=UM_send_all)
+def get_all(
+    db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
+):
+
+    instructors = crud.get_users_by_filter(
+        db=db,
+        filters={
+            "service_line_id": current_user.service_line_id,
+            "role_name": "Instructor",
+        },
+    )
+    designations = db.query(Designations).all()
+    service_lines = db.query(ServiceLine).all()
+    roles = db.query(ExternalRoles).all()
+
+    # return UM_send_all(
+    #     instructors=[InstructorDisplay.from_orm(user) for user in instructors],
+    #     designations=[
+    #         DesignationModel.from_orm(designation) for designation in designations
+    #     ],
+    #     service_lines=[
+    #         ServiceLineModel.from_orm(service_line) for service_line in service_lines
+    #     ],
+    #     roles=[ExternalRoleModel.from_orm(role) for role in roles],
+    # )
+
+    # Convert instructors to InstructorDisplay with team members
+    instructor_displays = []
+    for instructor in instructors:
+        team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
+        team_members_pydantic = [UserBase.from_orm(member) for member in team_members]
+        instructor_display = InstructorDisplay(
+            id=instructor.id,
+            first_name=instructor.first_name,
+            last_name=instructor.last_name,
+            email=instructor.email,
+            role_name=instructor.role_name,
+            employee_id=instructor.employee_id,
+            designation=instructor.designation,
+            service_line_id=instructor.service_line_id,
+            total_training_hours=instructor.total_training_hours,
+            counselor=(
+                UserBase.from_orm(instructor.counselor)
+                if instructor.counselor
+                else None
+            ),
+            team_members=team_members_pydantic,
+        )
+        instructor_displays.append(instructor_display)
+
+    return UM_send_all(
+        instructors=instructor_displays,
+        designations=[
+            DesignationModel.from_orm(designation) for designation in designations
+        ],
+        service_lines=[
+            ServiceLineModel.from_orm(service_line) for service_line in service_lines
+        ],
+        roles=[ExternalRoleModel.from_orm(role) for role in roles],
+    )
+
+
+# @app.post("/users/{user_id}/profile_pic", status_code=200)
+# async def upload_profile_pic(
+#     user_id: int = Path(..., description="The ID of the course"),
+#     file: UploadFile = File(...),
+#     db: Session = Depends(get_db),
+# ):
+#     # Check if the file is an image
+#     if not file.content_type.startswith("image/"):
+#         raise HTTPException(
+#             status_code=400, detail="Unsupported file type. Please upload an image."
+#         )
+
+#     file_storage = FileStorage()
+
+#     # Save the file using the storage class
+#     try:
+#         file_metadata = file_storage.save_file(file, db, type="profile_pic")
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+#     # Fetch the course and update its thumbnail_file_id
+#     course = db.query(Course).filter(Course.id == user_id).first()
+#     if not course:
+#         raise HTTPException(status_code=404, detail="Course not found")
+
+#     course.thumbnail_file_id = file_metadata.FileID
+#     db.commit()
+
+#     return {
+#         "message": "Thumbnail updated successfully.",
+#         "file_id": file_metadata.FileID,
+#     }

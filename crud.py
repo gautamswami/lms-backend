@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 
 from models import User, Role, Course, Enrollment
 from schemas import UserCreate, UserUpdate
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
+from typing import Dict, Any, List
 
 
 def add_roles_if_not_exists(db: Session):
@@ -35,6 +38,25 @@ def add_roles_if_not_exists(db: Session):
 
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
+
+
+def get_users_by_filter(db: Session, filters: Dict[str, Any]) -> List[User]:
+    query = db.query(User)
+    conditions = []
+    for attr, condition in filters.items():
+        column = getattr(User, attr)
+        if isinstance(condition, dict):
+            for operator, value in condition.items():
+                if operator == "eq":
+                    conditions.append(column == value)
+                elif operator == "lt":
+                    conditions.append(column < value)
+                elif operator == "gt":
+                    conditions.append(column > value)
+                # Add more operators as needed
+        else:
+            conditions.append(column == condition)
+    return query.filter(and_(*conditions)).all()
 
 
 def update_user(db: Session, user_id: int, user: UserUpdate):

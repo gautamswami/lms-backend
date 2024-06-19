@@ -3,20 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 import os
 import uuid
-from models import (
-    Base,
-    User,
-    Role,
-    Course,
-    Chapter,
-    Content,
-    Enrollment,
-    Progress,
-    File,
-    ServiceLine,
-    LearningPath,
-    Feedback,
-)
+from models import *
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -34,6 +21,71 @@ Base.metadata.create_all(bind=engine)
 def create_sample_data():
     db = SessionLocal()
     try:
+
+        service_lines = [
+            "Business Risk",
+            "Assurance",
+            "Stat Audit",
+            "Accounting Advisory",
+            "Tech Risk",
+            "HR",
+            "Operations",
+            "Pursuits",
+            "IT Operations",
+            "Content Writer",
+            "Website Operation Specialist",
+            "Financial Due Diligence",
+            "Brands, Marketing and Communications",
+        ]
+        designations = [
+            "Co-Founder - Assurance and Advisory Leader",
+            "Director",
+            "Senior Consultant",
+            "Senior",
+            "Manager",
+            "Associate Director",
+            "Assistant Manager",
+            "Consultant",
+            "Associate",
+            "Executive - Operations",
+            "Executive",
+            "Executive Assistant",
+            "Associate (Support) – Operations",
+            "Trainee",
+        ]
+        external_roles = [
+            "Business Risk",
+            "Assurance",
+            "Stat Audit",
+            "Accounting Advisory",
+            "Tech Risk",
+            "HR",
+            "Operations",
+            "Pursuits",
+            "IT Operations",
+            "Content Writer",
+            "Website Operation Specialist",
+            "Financial Due Diligence",
+            "Brands, Marketing and Communications",
+        ]
+
+        # Add service lines
+        for name in service_lines:
+            service_line = ServiceLine(name=name)
+            db.add(service_line)
+
+        # Add designations
+        for name in designations:
+            designation = Designations(name=name)
+            db.add(designation)
+
+        # Add external roles
+        for name in external_roles:
+            external_role = ExternalRoles(name=name)
+            db.add(external_role)
+
+        db.commit()
+
         # Create roles
         roles = [
             Role(RoleName="Super Admin", Description="Manages the whole system"),
@@ -63,8 +115,9 @@ def create_sample_data():
             last_name="Admin",
             role_name="Super Admin",
             employee_id="SA001",
-            designation="Chief",
-            service_line_id=service_lines[0].id,
+            designation="Manager",
+            service_line_id=service_lines[0].name,
+            external_role_name="Assurance",
         )
         admin = User(
             email="admin@example.com",
@@ -74,7 +127,8 @@ def create_sample_data():
             role_name="Admin",
             employee_id="AD001",
             designation="Manager",
-            service_line_id=service_lines[0].id,
+            service_line_id=service_lines[0].name,
+            external_role_name="Pursuits",
         )
         instructor = User(
             email="instructor@example.com",
@@ -83,8 +137,9 @@ def create_sample_data():
             last_name="User",
             role_name="Instructor",
             employee_id="IN001",
-            designation="Lead",
-            service_line_id=service_lines[0].id,
+            designation="Manager",
+            service_line_id=service_lines[0].name,
+            external_role_name="Pursuits",
         )
 
         db.add_all([super_admin, admin, instructor])
@@ -97,9 +152,10 @@ def create_sample_data():
             last_name="User",
             role_name="Employee",
             employee_id="EM001",
-            designation="Developer",
-            service_line_id=service_lines[0].id,
+            designation="Manager",
+            service_line_id=service_lines[0].name,
             counselor_id=instructor.id,
+            external_role_name="Pursuits",
         )
 
         NONE = User(
@@ -109,9 +165,10 @@ def create_sample_data():
             last_name="User",
             role_name="Admin",
             employee_id="EM001",
-            designation="Developer",
-            service_line_id=service_lines[0].id,
+            designation="Manager",
+            service_line_id=service_lines[0].name,
             counselor_id=instructor.id,
+            external_role_name="Pursuits",
         )
 
         db.add_all([employee, NONE])
@@ -123,7 +180,7 @@ def create_sample_data():
             description="Learn Python basics",
             category="Programming",
             created_by=admin.id,
-            service_line_id=service_lines[0].id,
+            service_line_id=service_lines[0].name,
             expected_time_to_complete=10,
         )
         course2 = Course(
@@ -131,7 +188,7 @@ def create_sample_data():
             description="Deep dive into data science techniques",
             category="Data Science",
             created_by=instructor.id,
-            service_line_id=service_lines[1].id,
+            service_line_id=service_lines[1].name,
             expected_time_to_complete=20,
         )
 

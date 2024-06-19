@@ -4,12 +4,19 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 
-class UserBase(BaseModel):
+class BaseModel_(BaseModel):
+    class Config:
+        from_attributes = True
+
+
+class UserBase(BaseModel_):
     first_name: str
     last_name: str
     email: EmailStr
     role_name: str
-    counselor_id: Optional[int]
+    employee_id: str
+    designation: str
+    service_line_id: str
 
 
 class UserDisplay(UserBase):
@@ -23,22 +30,31 @@ class UserDisplay(UserBase):
         from_attributes = True
 
 
+class InstructorDisplay(UserBase):
+    id: int
+    counselor: Optional[UserBase]
+    team_members: Optional[List[UserBase]]
+    total_training_hours: (
+        int  # Add total training hours to match ORM and requirement document
+    )
+
+    class Config:
+        from_attributes = True
+
+
 class UserCreate(UserBase):
     dp_file_id: str
     password: str
-    employee_id: str
-    designation: str
-    service_line_id: int
     counselor_id: Optional[int]
     entity: str
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(BaseModel_):
     # Changed to Optional if updating isn't mandatory
     email: str
     dp_file_id: Optional[str] = None
     designation: Optional[str] = None
-    service_line_id: Optional[int] = None
+    service_line_id: Optional[str] = None
     compliance_hours: Optional[int] = (
         None  # Added to update the compliance hours per user
     )
@@ -50,7 +66,7 @@ class UserUpdate(BaseModel):
 # ############################################ USER ENDS HERE ####################################################
 
 
-class ContentBase(BaseModel):
+class ContentBase(BaseModel_):
     chapter_id: int
 
 
@@ -65,7 +81,7 @@ class ContentDisplay(ContentBase):
     file_id: str
 
 
-class ChapterBase(BaseModel):
+class ChapterBase(BaseModel_):
     title: str
     description: str
     course_id: int
@@ -83,7 +99,7 @@ class ChapterDisplay(ChapterCreate):
         from_attributes = True
 
 
-class CourseCreate(BaseModel):
+class CourseCreate(BaseModel_):
     title: str
     description: str
     category: str  # Assuming thumbnail is stored as a URL or file path
@@ -95,7 +111,7 @@ class CourseCreate(BaseModel):
 class CourseDisplay(CourseCreate):
     id: int
     thumbnail_file_id: Optional[str]
-    service_line_id: Optional[int]
+    service_line_id: Optional[str]
     status: str
     ratings: float
     creation_date: datetime
@@ -117,7 +133,7 @@ class AdminCourseView(CourseDisplay):
     entity: str  # Entity information to which the course belongs
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AdminUserView(UserDisplay):
@@ -127,7 +143,7 @@ class AdminUserView(UserDisplay):
     service_line: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Instructor specific views
@@ -136,7 +152,7 @@ class InstructorCourseView(CourseDisplay):
     participants: List[UserDisplay]  # List of participants enrolled in the course
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class InstructorUserView(UserDisplay):
@@ -146,7 +162,7 @@ class InstructorUserView(UserDisplay):
     )
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Trainee specific views
@@ -155,7 +171,7 @@ class TraineeCourseView(CourseDisplay):
     progress: float  # Percentage of course completion
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TraineeProfileView(UserDisplay):
@@ -164,11 +180,11 @@ class TraineeProfileView(UserDisplay):
     counselor: UserDisplay  # Display the assigned counselor's details
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Learning Path Models for assigning and displaying learning paths
-class LearningPathBase(BaseModel):
+class LearningPathBase(BaseModel_):
     name: str
     expiry_date: Optional[datetime]  # Date when the learning path expires
 
@@ -178,52 +194,87 @@ class LearningPathDisplay(LearningPathBase):
     courses: List[CourseDisplay]  # List of courses in the learning path
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class AssignLearningPath(BaseModel):
+class AssignLearningPath(BaseModel_):
     learning_path_id: int
     user_id: int
     assign_date: datetime  # Date when the learning path is assigned to the user
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Feedback Models
-class FeedbackCreate(BaseModel):
+class FeedbackCreate(BaseModel_):
     course_id: int
     user_id: int
     rating: int
     description: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class FeedbackDisplay(FeedbackCreate):
     id: int  # Feedback identifier
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 ########
 
 
-class EnrollmentRequest(BaseModel):
+class EnrollmentRequest(BaseModel_):
     course_id: int
     user_ids: list[int]  # List of user IDs to enroll
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class Token(BaseModel):
+class Token(BaseModel_):
     access_token: str
     token_type: str
     user_details: UserDisplay
 
 
-class TokenData(BaseModel):
+class TokenData(BaseModel_):
     username: str = None
+
+
+# Pydantic models
+class ServiceLineModel(BaseModel_):
+
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class DesignationModel(BaseModel_):
+
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class ExternalRoleModel(BaseModel_):
+
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class UM_send_all(BaseModel_):
+    instructors: List[InstructorDisplay]
+    designations: List[DesignationModel]
+    service_lines: List[ServiceLineModel]
+    roles: List[ExternalRoleModel]
+
+    class Config:
+        from_attributes = True

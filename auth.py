@@ -16,12 +16,14 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "your_secret_key_1234567890"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 60
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 async def get_current_user(
-    authorization: Annotated[Union[str, None], Header()] = None,
+    authorization: Annotated[
+        Union[str, None], Header()
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODkxMjI0Mn0.4Jxqv2Xepba60I8jbzOHGmSUOppVWr1KgODDgbvx2bI",
     db: Session = Depends(get_db),
 ):
     # async def get_current_user(

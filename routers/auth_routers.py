@@ -67,7 +67,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 #     db: Session = Depends(get_db),
 #     access_token: Union[str, None] = Cookie(None)
 # ):
-@app.get("/users/me", response_model=schemas.UserBase)
+@app.get("/users/me", response_model=schemas.UserDisplay)
 def read_users_me(
     response: Response,
     authorization: Annotated[
