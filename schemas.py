@@ -34,27 +34,17 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    dp_file_id: Optional[str]  # Changed to Optional if updating isn't mandatory
+    # Changed to Optional if updating isn't mandatory
     email: str
-    designation: str
-    service_line_id: int
-    compliance_hours: int  # Added to update the compliance hours per user
+    dp_file_id: Optional[str] = None
+    designation: Optional[str] = None
+    service_line_id: Optional[int] = None
+    compliance_hours: Optional[int] = (
+        None  # Added to update the compliance hours per user
+    )
 
     class Config:
         from_attributes = True
-
-
-class UserInDB(UserBase):
-    UserID: int
-    Role: str
-
-    class Config:
-        from_attributes = True
-
-
-class UserLogin(BaseModel):
-    Email: str
-    Password: str
 
 
 # ############################################ USER ENDS HERE ####################################################

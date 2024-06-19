@@ -1,7 +1,7 @@
 import smtplib
 from email.message import EmailMessage
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Header
 from fastapi import Depends, HTTPException, status
 from jose import JWTError
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ import crud
 from auth import oauth2_scheme
 from config import EMAIL_ADDRESS, EMAIL_PASSWORD
 from dependencies import get_db
-from schemas import UserCreate, UserInDB, UserUpdate, UserDisplay
+from schemas import UserCreate, UserUpdate, UserDisplay
 from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status, Cookie
@@ -67,18 +67,21 @@ def reset_password(token: str, new_password: str, db: Session = Depends(get_db))
     return {"message": "Password has been reset successfully"}
 
 
-@app.post("/users/", response_model=UserInDB, status_code=status.HTTP_201_CREATED)
+@app.post("/users/", response_model=UserDisplay, status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    access_token: Union[str, None] = Cookie(None),
+    authorization: Annotated[
+        Union[str, None], Header()
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    access_token = access_token.replace("Bearer ", "")
+    access_token = authorization.replace("Bearer ", "")
+    print("\n\n\nGot Access token")
     token_data = auth.verify_token(access_token)
     logged_in_user = crud.get_user_by_email(db, email=token_data.username)
     db_user = crud.get_user_by_email(db, email=user.email)
@@ -91,14 +94,16 @@ def create_user(
 def read_user(
     user_id: int,
     db: Session = Depends(get_db),
-    access_token: Union[str, None] = Cookie(None),
+    authorization: Annotated[
+        Union[str, None], Header()
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    access_token = access_token.replace("Bearer ", "")
+    access_token = authorization.replace("Bearer ", "")
     token_data = auth.verify_token(access_token)
     logged_in_user = crud.get_user_by_email(db, email=token_data.username)
     print(logged_in_user.email, logged_in_user.role_name)
@@ -110,28 +115,32 @@ def read_user(
     return db_user
 
 
-@app.put("/users/{user_id}", response_model=UserInDB)
+@app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
     user_id: int,
     user: UserUpdate,
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
+    authorization: Annotated[
+        Union[str, None], Header()
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token = token.replace("Bearer ", "")
-    token_data = auth.verify_token(token)
+    access_token = authorization.replace("Bearer ", "")
+    token_data = auth.verify_token(access_token)
     logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    db_user = crud.update_user(db, user_id=user_id, user=user)
+    print(user.__dict__)
+    update_data = user.dict(exclude_unset=True)
+    db_user = crud.update_user(db, user_id=user_id, user=update_data)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
 
-@app.delete("/users/{user_id}", response_model=UserInDB)
+@app.delete("/users/{user_id}", response_model=UserDisplay)
 def delete_user(
     user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
 ):

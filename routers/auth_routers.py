@@ -11,7 +11,7 @@ import schemas
 from auth import oauth2_scheme
 from dependencies import get_db
 from models import User
-from schemas import UserCreate, UserInDB, Token, UserDisplay
+from schemas import UserCreate, Token, UserDisplay
 import requests
 from fastapi import FastAPI, Request, HTTPException, Header, Body
 
@@ -70,7 +70,9 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/me", response_model=schemas.UserBase)
 def read_users_me(
     response: Response,
-    authorization: Annotated[Union[str, None], Header()] = None,
+    authorization: Annotated[
+        Union[str, None], Header()
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
     db: Session = Depends(get_db),
 ):
     print("calling token_auth")
