@@ -19,18 +19,31 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 
 app = APIRouter(prefix="/um", tags=["User Management"])
 
+SMTP_SERVER = "smtp-relay.brevo.com"
+PORT = 587
+LOGIN = "770dc4001@smtp-brevo.com"
+PASSWORD = "McSQf8NqvOxb7mJF"
+
+# Email details
+FROM_EMAIL = "driftcodedev@gmail.com"
+TO_EMAIL = "akash21091999@gmail.com"
+SUBJECT = "Test Email"
+BODY = "This is a test email sent using SMTP in Python."
+
 
 def send_reset_email(email: str, token: str):
     msg = EmailMessage()
     msg.set_content(f"Please use the following link to reset your password: \n{token}")
 
     msg["Subject"] = "Reset Your Password"
-    msg["From"] = EMAIL_ADDRESS
+    msg["From"] = FROM_EMAIL
     msg["To"] = email
-    print(token)
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
+    server = smtplib.SMTP(SMTP_SERVER, PORT)
+    server.starttls()
+    server.login(LOGIN, PASSWORD)
+    text = msg.as_string()
+    server.sendmail(FROM_EMAIL, email, text)
+    server.quit()
 
 
 @app.post("/users/forgot-password/")
