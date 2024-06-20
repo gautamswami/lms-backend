@@ -9,6 +9,7 @@ from schemas import UserCreate, UserUpdate
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from typing import Dict, Any, List
+from passlib.context import CryptContext
 
 
 def add_roles_if_not_exists(db: Session):
@@ -119,6 +120,8 @@ def get_user_by_email(db: Session, email: str) -> Optional[Type[User]]:
 def create_user(db: Session, user: UserCreate) -> User:
     from auth import get_password_hash
 
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    user.password = pwd_context.hash(user.password)
     db_user = User(**user.dict())
     db.add(db_user)
     db.commit()
