@@ -27,7 +27,7 @@ def send_reset_email(email: str, token: str):
     msg["Subject"] = "Reset Your Password"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = email
-
+    print(token)
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         server.send_message(msg)
@@ -161,6 +161,7 @@ def get_all(
     service_lines = db.query(ServiceLine).all()
     external_roles = db.query(ExternalRoles).all()
     internal_roles = db.query(Role).all()
+    entity = ["entity1", "entity2"]
 
     instructor_displays = []
     for instructor in instructors:
@@ -196,6 +197,7 @@ def get_all(
         ],
         external_roles=[ExternalRoleModel.from_orm(role) for role in external_roles],
         internal_roles=[InternalRoleModel.from_orm(role) for role in internal_roles],
+        entities=entity,
     )
 
 
