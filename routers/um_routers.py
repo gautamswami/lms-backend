@@ -159,7 +159,8 @@ def get_all(
     )
     designations = db.query(Designations).all()
     service_lines = db.query(ServiceLine).all()
-    roles = db.query(ExternalRoles).all()
+    external_roles = db.query(ExternalRoles).all()
+    internal_roles = db.query(Role).all()
 
     instructor_displays = []
     for instructor in instructors:
@@ -193,7 +194,8 @@ def get_all(
         service_lines=[
             ServiceLineModel.from_orm(service_line) for service_line in service_lines
         ],
-        roles=[ExternalRoleModel.from_orm(role) for role in roles],
+        external_roles=[ExternalRoleModel.from_orm(role) for role in external_roles],
+        internal_roles=[InternalRoleModel.from_orm(role) for role in internal_roles],
     )
 
 
