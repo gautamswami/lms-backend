@@ -8,13 +8,14 @@ from auth import get_current_user
 from crud import enroll_users
 from dependencies import get_db
 from file_storage import FileStorage
-from models import Course, Chapter, User, Content, Enrollment
-from schemas import CourseCreate, CourseDisplay, ChapterCreate, ChapterDisplay, ContentDisplay, EnrollmentRequest
+from models import Course, Chapter, User, Content, Enrollment, Progress
+from schemas import CourseCreate, CourseFullDisplay, ChapterCreate, ChapterDisplay, ContentDisplay, EnrollmentRequest, \
+    CourseSortDisplay
 
 app = APIRouter(tags=['course'])
 
 
-@app.post("/courses/", response_model=CourseDisplay)
+@app.post("/courses/", response_model=CourseFullDisplay)
 def create_course(course: CourseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role_name == "Employee":
         raise HTTPException(status_code=403, detail="Only instructors can create courses")
@@ -22,16 +23,42 @@ def create_course(course: CourseCreate, db: Session = Depends(get_db), current_u
     db.add(new_course)
     db.commit()
     db.refresh(new_course)
-    return new_course
 
 
-@app.get("/courses/", response_model=List[CourseDisplay])
-def get_courses(db: Session = Depends(get_db)):
+@app.get("/courses/", response_model=List[CourseSortDisplay])
+def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    print(current_user.first_name)
     courses = db.query(Course).options(joinedload(Course.approver)).all()
     return courses
 
 
-@app.get("/courses/{course_id}", response_model=CourseDisplay)
+@app.get("/courses/enrolled", response_model=List[CourseSortDisplay])
+def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    enrollments = db.query(Enrollment).filter(Enrollment.user_id == current_user.id).all()
+    courses = [enrollment.course for enrollment in enrollments]
+    return courses
+
+
+@app.get("/courses/active", response_model=List[CourseSortDisplay])
+def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    progresses = db.query(Progress) \
+        .filter(Enrollment.user_id == current_user.id) \
+        .all()
+    courses = {progress.enrollment.course for progress in progresses}
+    return courses
+
+
+@app.get("/courses/completed", response_model=List[CourseFullDisplay])
+def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    enrollments = db.query(Enrollment)\
+                    .filter(Enrollment.user_id == current_user.id)\
+                    .filter(Enrollment.status == "Completed")\
+                    .all()
+    courses = [enrollment.course for enrollment in enrollments]
+    return courses
+
+
+@app.get("/courses/{course_id}", response_model=CourseFullDisplay)
 def get_course(course_id: int, db: Session = Depends(get_db)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -168,7 +195,8 @@ async def enroll_by_instructor(request: EnrollmentRequest, db: Session = Depends
 
 
 @app.post("/enroll/by/admins/", status_code=201)
-async def enroll_by_admin(request: EnrollmentRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def enroll_by_admin(request: EnrollmentRequest, db: Session = Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
     if current_user.role_name != "Admin":
         raise HTTPException(status_code=403, detail="Only admins can perform this action.")
 
@@ -181,7 +209,7 @@ async def enroll_by_admin(request: EnrollmentRequest, db: Session = Depends(get_
     return enroll_users(request.course_id, request.user_ids, db)
 
 
-@app.get("/users/enrolled-courses", response_model=List[CourseDisplay])
+@app.get("/users/enrolled-courses", response_model=List[CourseFullDisplay])
 async def get_enrolled_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     enrolled_courses = db.query(Course).join(Enrollment).filter(Enrollment.user_id == current_user.id).all()
     return enrolled_courses

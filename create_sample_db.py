@@ -176,23 +176,74 @@ def create_sample_data():
 
         # Create courses
         course1 = Course(
-            title="Intro to Python",
+            title="course1",
+            description="Learn Python basics",
+            category="Programming",
+            created_by=instructor.id,
+            service_line_id=service_lines[0].name,
+            expected_time_to_complete=10,
+            tags="advanced,ml"
+        )
+        course2 = Course(
+            title="course2",
+            description="Learn Python basics",
+            category="Programming",
+            created_by=instructor.id,
+            service_line_id=service_lines[0].name,
+            expected_time_to_complete=10,
+            approved_by=admin.id,
+            approved_date=datetime.now(),
+            status="approved",
+        )
+        course3 = Course(
+            title="course3",
+            description="Learn Python basics",
+            category="Programming",
+            created_by=instructor.id,
+            service_line_id=service_lines[0].name,
+            expected_time_to_complete=10,
+            approved_by=admin.id,
+            approved_date=datetime.now(),
+            status="approved",
+            tags="advanced,ml"
+
+        )
+        course4 = Course(
+            title="course4",
+            description="Learn Python basics",
+            category="Programming",
+            created_by=instructor.id,
+            service_line_id=service_lines[0].name,
+            expected_time_to_complete=10,
+            approved_by=admin.id,
+            approved_date=datetime.now(),
+            status="approved",
+        )
+        course5 = Course(
+            title="course5",
             description="Learn Python basics",
             category="Programming",
             created_by=admin.id,
             service_line_id=service_lines[0].name,
             expected_time_to_complete=10,
+            approved_by=admin.id,
+            approved_date=datetime.now(),
+            status="approved",
         )
-        course2 = Course(
+        course6 = Course(
             title="Advanced Data Science",
             description="Deep dive into data science techniques",
             category="Data Science",
-            created_by=instructor.id,
+            created_by=admin.id,
             service_line_id=service_lines[1].name,
             expected_time_to_complete=20,
+            approved_by=admin.id,
+            approved_date=datetime.now(),
+            status="approved",
+            tags="beginner,python"
         )
 
-        db.add_all([course1, course2])
+        db.add_all([course1, course2, course3, course4, course5, course6])
         db.commit()
 
         # Create chapters
@@ -230,20 +281,43 @@ def create_sample_data():
         # Create enrollments
         enrollment1 = Enrollment(
             user_id=employee.id,
-            course_id=course1.id,
+            course_id=course2.id,
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete),
             year=datetime.now().year,
+            status='Completed'
         )
         enrollment2 = Enrollment(
             user_id=employee.id,
-            course_id=course2.id,
+            course_id=course3.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            year=datetime.now().year,
+        )
+        enrollment3 = Enrollment(
+            user_id=employee.id,
+            course_id=course4.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            year=datetime.now().year,
+        )
+        enrollment4 = Enrollment(
+            user_id=employee.id,
+            course_id=course5.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            year=datetime.now().year,
+            status='Completed'
+        )
+        enrollment5 = Enrollment(
+            user_id=employee.id,
+            course_id=course6.id,
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
             year=datetime.now().year,
         )
 
-        db.add_all([enrollment1, enrollment2])
+        db.add_all([enrollment1, enrollment2, enrollment3, enrollment4, enrollment5])
         db.commit()
 
         # Create progress

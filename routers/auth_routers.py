@@ -12,7 +12,7 @@ from auth import oauth2_scheme
 from dependencies import get_db
 from models import User
 from schemas import UserCreate, Token, UserDisplay
-import requests
+
 from fastapi import FastAPI, Request, HTTPException, Header, Body
 
 app = APIRouter(prefix="/auth", tags=["auth"])
@@ -75,7 +75,7 @@ def read_users_me(
     ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
     db: Session = Depends(get_db),
 ):
-    print("calling token_auth")
+    print("calling token_auth", authorization)
     token = token_auth(authorization)
     print("got token from token_auth", token)
     token_data = auth.verify_token(token)

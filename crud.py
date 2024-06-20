@@ -40,7 +40,7 @@ def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 
-def get_users_by_filter(db: Session, filters: Dict[str, Any]) -> List[User]:
+def get_users_by_filter(db: Session, filters: Dict[str, Any]) -> list[Type[User]]:
     query = db.query(User)
     conditions = []
     for attr, condition in filters.items():
