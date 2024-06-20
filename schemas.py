@@ -17,6 +17,7 @@ class UserBase(BaseModel_):
     employee_id: str
     designation: str
     service_line_id: str
+    external_role_name: str
 
 
 class UserDisplay(UserBase):
