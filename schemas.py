@@ -303,6 +303,7 @@ class UM_send_all(BaseModel_):
     service_lines: List[ServiceLineModel]
     external_roles: List[ExternalRoleModel]
     internal_roles: List[InternalRoleModel]
+    entities: list[str] = ["Pierian", "entity2"]
 
     class Config:
         from_attributes = True

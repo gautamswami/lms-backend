@@ -27,7 +27,7 @@ def send_reset_email(email: str, token: str):
     msg["Subject"] = "Reset Your Password"
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = email
-
+    print(token)
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         server.send_message(msg)
@@ -177,6 +177,7 @@ def get_all(
             designation=instructor.designation,
             service_line_id=instructor.service_line_id,
             total_training_hours=instructor.total_training_hours,
+            external_role_name=instructor.external_role_name,
             counselor=(
                 UserBase.from_orm(instructor.counselor)
                 if instructor.counselor
