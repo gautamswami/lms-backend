@@ -161,7 +161,6 @@ def get_all(
     service_lines = db.query(ServiceLine).all()
     external_roles = db.query(ExternalRoles).all()
     internal_roles = db.query(Role).all()
-    entity = ["entity1", "entity2"]
 
     instructor_displays = []
     for instructor in instructors:
@@ -178,6 +177,7 @@ def get_all(
             designation=instructor.designation,
             service_line_id=instructor.service_line_id,
             total_training_hours=instructor.total_training_hours,
+            external_role_name=instructor.external_role_name,
             counselor=(
                 UserBase.from_orm(instructor.counselor)
                 if instructor.counselor
@@ -197,7 +197,6 @@ def get_all(
         ],
         external_roles=[ExternalRoleModel.from_orm(role) for role in external_roles],
         internal_roles=[InternalRoleModel.from_orm(role) for role in internal_roles],
-        entities=entity,
     )
 
 
