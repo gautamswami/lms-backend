@@ -116,6 +116,7 @@ def read_user(
     return db_user
 
 
+# noinspection PyTypeChecker
 @app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
     user_id: int,
@@ -133,9 +134,10 @@ def update_user(
     access_token = authorization.replace("Bearer ", "")
     token_data = auth.verify_token(access_token)
     logged_in_user = crud.get_user_by_email(db, email=token_data.username)
-    print(user.__dict__)
-    update_data = user.dict(exclude_unset=True)
-    db_user = crud.update_user(db, user_id=user_id, user=update_data)
+    # print(user.__dict__)
+    # update_data = user.dict(exclude_unset=True)
+    # noinspection PyTypeChecker
+    db_user = crud.update_user(db, user_id=user_id, user=user)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
@@ -159,6 +161,7 @@ def delete_user(
     return db_user
 
 
+# noinspection PyTypeChecker
 @app.get("/get_all", response_model=UM_send_all)
 def get_all(
     db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
@@ -189,6 +192,7 @@ def get_all(
     # Convert instructors to InstructorDisplay with team members
     instructor_displays = []
     for instructor in instructors:
+        # noinspection PyTypeChecker
         team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
         team_members_pydantic = [UserBase.from_orm(member) for member in team_members]
         instructor_display = InstructorDisplay(
