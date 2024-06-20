@@ -45,7 +45,7 @@ class InstructorDisplay(UserBase):
 
 
 class UserCreate(UserBase):
-    dp_file_id: str
+    dp_file_id: Optional[str]
     password: str
     counselor_id: Optional[int]
     entity: str
