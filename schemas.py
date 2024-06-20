@@ -25,6 +25,7 @@ class UserDisplay(UserBase):
     total_training_hours: (
         int  # Add total training hours to match ORM and requirement document
     )
+    account_creation_date: datetime
 
     class Config:
         from_attributes = True
@@ -128,6 +129,7 @@ class CourseFullDisplay(CourseSortDisplay):
 
 # ############################################ Course ENDS HERE ####################################################
 
+
 class DashStats(BaseModel_):
     enrolled_count: int
     active_count: int
@@ -139,6 +141,7 @@ class UserDashStats(CourseFullDisplay, DashStats):
 
 
 # ############################################ STATS ENDS HERE ####################################################
+
 
 # Admin specific views
 class AdminCourseViewFull(CourseFullDisplay):
@@ -284,11 +287,21 @@ class ExternalRoleModel(BaseModel_):
         from_attributes = True
 
 
+class InternalRoleModel(BaseModel_):
+
+    RoleName: str
+    Description: str
+
+    class Config:
+        from_attributes = True
+
+
 class UM_send_all(BaseModel_):
     instructors: List[InstructorDisplay]
     designations: List[DesignationModel]
     service_lines: List[ServiceLineModel]
-    roles: List[ExternalRoleModel]
+    external_roles: List[ExternalRoleModel]
+    internal_roles: List[InternalRoleModel]
 
     class Config:
         from_attributes = True

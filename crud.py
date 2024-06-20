@@ -4,9 +4,9 @@ from typing import Optional, Type
 
 from sqlalchemy.orm import Session
 
-from models import User, Role, Course, Enrollment
+from models import *
 from schemas import UserCreate, UserUpdate
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from typing import Dict, Any, List
 
@@ -62,24 +62,53 @@ def get_users_by_filter(db: Session, filters: Dict[str, Any]) -> list[Type[User]
 def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
-        if db_user.dp_file_id:
-            db_user.dp_file_id = user.dp_file_id
-        if db_user.email:
-            db_user.email = user.email
-        if db_user.designation:
-            db_user.designation = user.designation
-        if db_user.service_line_id:
-            db_user.service_line_id = user.service_line_id
-        db.commit()
-        db.refresh(db_user)
-    return db_user
+        try:
+            if db_user.dp_file_id:
+                db_user.dp_file_id = user["dp_file_id"]
+            if db_user.email:
+                db_user.email = user["email"]
+            if db_user.designation:
+                db_user.designation = user["designation"]
+            if db_user.service_line_id:
+                db_user.service_line_id = user["service_line_id"]
+            db.commit()
+            db.refresh(db_user)
+        except Exception as e:
+            db.rollback()
+            raise e
+        return db_user
 
 
-def delete_user(db: Session, user_id: int):
-    db_user = db.query(User).filter(User.id == user_id).first()
+def delete_user(db: Session, user_id: int) -> User:
+    db_user = (
+        db.query(User)
+        .options(joinedload(User.counselor))
+        .filter(User.id == user_id)
+        .first()
+    )
     if db_user:
-        db.delete(db_user)
-        db.commit()
+        try:
+            # Remove or update related records
+            db.query(Enrollment).filter(Enrollment.user_id == user_id).delete()
+            db.query(Feedback).filter(Feedback.user_id == user_id).delete()
+            db.query(association_table).filter(
+                association_table.c.user_id == user_id
+            ).delete()
+            db.query(user_learning_paths).filter(
+                user_learning_paths.c.user_id == user_id
+            ).delete()
+
+            # Handle team members (set their counselor_id to NULL)
+            db.query(User).filter(User.counselor_id == user_id).update(
+                {User.counselor_id: None}
+            )
+
+            # Now delete the user
+            db.delete(db_user)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise e
     return db_user
 
 
