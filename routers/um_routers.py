@@ -104,6 +104,7 @@ def read_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
+# noinspection PyTypeChecker
 @app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
     user_id: int,
@@ -143,6 +144,7 @@ def delete_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
+# noinspection PyTypeChecker
 @app.get("/get_all", response_model=UM_send_all)
 def get_all(
     db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
@@ -161,6 +163,7 @@ def get_all(
 
     instructor_displays = []
     for instructor in instructors:
+        # noinspection PyTypeChecker
         team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
         team_members_pydantic = [UserBase.from_orm(member) for member in team_members]
         instructor_display = InstructorDisplay(

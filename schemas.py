@@ -1,7 +1,7 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr
-from datetime import datetime
 
 
 class BaseModel_(BaseModel):
@@ -108,15 +108,18 @@ class CourseCreate(BaseModel_):
     tags: Optional[str]  # Added to handle course tagging feature
 
 
-class CourseDisplay(CourseCreate):
+class CourseSortDisplay(CourseCreate):
     id: int
     thumbnail_file_id: Optional[str]
     service_line_id: Optional[str]
     status: str
     ratings: float
     creation_date: datetime
-    approver: Optional[UserDisplay]
     approved_date: Optional[datetime]
+
+
+class CourseFullDisplay(CourseSortDisplay):
+    approver: Optional[UserDisplay]
     chapters: List[ChapterDisplay] = []
 
     class Config:
@@ -125,10 +128,21 @@ class CourseDisplay(CourseCreate):
 
 # ############################################ Course ENDS HERE ####################################################
 
+class DashStats(BaseModel_):
+    enrolled_count: int
+    active_count: int
+    completed_count: int
+
+
+class UserDashStats(CourseFullDisplay, DashStats):
+    pass
+
+
+# ############################################ STATS ENDS HERE ####################################################
 
 # Admin specific views
-class AdminCourseView(CourseDisplay):
-    # Includes everything from CourseDisplay and additional admin-specific fields
+class AdminCourseViewFull(CourseFullDisplay):
+    # Includes everything from CourseFullDisplay and additional admin-specific fields
     created_by: UserDisplay  # Display the creator of the course
     entity: str  # Entity information to which the course belongs
 
@@ -147,8 +161,8 @@ class AdminUserView(UserDisplay):
 
 
 # Instructor specific views
-class InstructorCourseView(CourseDisplay):
-    # Similar to AdminCourseView but tailored for instructors
+class InstructorCourseViewFull(CourseFullDisplay):
+    # Similar to AdminCourseViewFull but tailored for instructors
     participants: List[UserDisplay]  # List of participants enrolled in the course
 
     class Config:
@@ -166,7 +180,7 @@ class InstructorUserView(UserDisplay):
 
 
 # Trainee specific views
-class TraineeCourseView(CourseDisplay):
+class TraineeCourseViewFull(CourseFullDisplay):
     # Trainees see a simpler view of the course
     progress: float  # Percentage of course completion
 
@@ -191,7 +205,7 @@ class LearningPathBase(BaseModel_):
 
 class LearningPathDisplay(LearningPathBase):
     id: int
-    courses: List[CourseDisplay]  # List of courses in the learning path
+    courses: List[CourseFullDisplay]  # List of courses in the learning path
 
     class Config:
         from_attributes = True

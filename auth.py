@@ -16,19 +16,16 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "your_secret_key_1234567890"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 1 * 60 * 24 * 7
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 async def get_current_user(
     authorization: Annotated[
         Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODkxMjI0Mn0.4Jxqv2Xepba60I8jbzOHGmSUOppVWr1KgODDgbvx2bI",
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlbXBsb3llZUBleGFtcGxlLmNvbSIsImV4cCI6MTcxOTQ1NTI0Nn0.w4MKJkE-tjnZJ_NevngW7jRSZTn8NwjINPYTBkPFVZ0",
     db: Session = Depends(get_db),
 ):
-    # async def get_current_user(
-    #     token: Union[str, None] = Cookie(None), db: Session = Depends(get_db)
-    # ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
