@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, List
 
@@ -83,6 +85,31 @@ class ContentDisplay(ContentBase):
     file_id: str
 
 
+class QuestionBase(BaseModel_):
+    question: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
+
+
+class QuestionCreate(QuestionBase):
+    correct_answer: str
+
+
+class QuestionDisplay(QuestionBase):
+    id: str
+
+
+class QuestionUpdate(QuestionBase):
+    question: Optional[str] = None
+    option_a: Optional[str] = None
+    option_b: Optional[str] = None
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    correct_answer: Optional[str] = None
+
+
 class ChapterBase(BaseModel_):
     title: str
     description: str
@@ -118,6 +145,10 @@ class CourseSortDisplay(CourseCreate):
     ratings: float
     creation_date: datetime
     approved_date: Optional[datetime]
+    chapters_count: Optional[int]
+    feedback_count: Optional[int]
+    completed_students_count: Optional[int]
+    average_rating: Optional[int]
 
 
 class CourseFullDisplay(CourseSortDisplay):
@@ -265,7 +296,6 @@ class TokenData(BaseModel_):
 
 # Pydantic models
 class ServiceLineModel(BaseModel_):
-
     name: str
 
     class Config:
@@ -273,7 +303,6 @@ class ServiceLineModel(BaseModel_):
 
 
 class DesignationModel(BaseModel_):
-
     name: str
 
     class Config:
@@ -281,7 +310,6 @@ class DesignationModel(BaseModel_):
 
 
 class ExternalRoleModel(BaseModel_):
-
     name: str
 
     class Config:
@@ -289,7 +317,6 @@ class ExternalRoleModel(BaseModel_):
 
 
 class InternalRoleModel(BaseModel_):
-
     RoleName: str
     Description: str
 
