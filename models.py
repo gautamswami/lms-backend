@@ -98,9 +98,9 @@ class User(Base):
     )
     enrollments = relationship("Enrollment", back_populates="user")
     feedbacks = relationship("Feedback", back_populates="user")
-    learning_paths = relationship(
-        "LearningPath", secondary=user_learning_paths, back_populates="users"
-    )
+    # learning_paths = relationship(
+    #     "LearningPath", secondary=user_learning_paths, back_populates="users"
+    # )
     counselor = relationship('User', remote_side=[id], backref=backref('counselees', overlaps="team_members"))
     team_members = relationship('User', foreign_keys=[counselor_id], back_populates='counselor', overlaps="counselees")
 
