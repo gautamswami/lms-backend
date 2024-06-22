@@ -3,15 +3,15 @@ from sqlalchemy import (
     Integer,
     String,
     ForeignKey,
-    Boolean,
     Date,
     Table,
     DateTime,
     Numeric,
     Index,
 )
+from sqlalchemy import select, func
+from sqlalchemy.orm import column_property, backref
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -37,6 +37,8 @@ learning_path_courses = Table(
     Column("learning_path_id", ForeignKey("learning_paths.id"), primary_key=True),
     Column("course_id", ForeignKey("courses.id"), primary_key=True),
 )
+
+
 # ======================================================================
 
 
@@ -99,10 +101,9 @@ class User(Base):
     learning_paths = relationship(
         "LearningPath", secondary=user_learning_paths, back_populates="users"
     )
-    counselor = relationship("User", remote_side=[id], backref="counselees")
-    team_members = relationship(
-        "User", foreign_keys=[counselor_id], back_populates="counselor"
-    )
+    counselor = relationship('User', remote_side=[id], backref=backref('counselees', overlaps="team_members"))
+    team_members = relationship('User', foreign_keys=[counselor_id], back_populates='counselor', overlaps="counselees")
+
 
     __table_args__ = (Index("idx_user_email", "email"),)
 
@@ -116,46 +117,6 @@ class File(Base):
     type = Column(String, nullable=False)  # Course content, DP, thumbnail
 
 
-class Course(Base):
-    __tablename__ = "courses"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String, nullable=False)
-    description = Column(String)
-    category = Column(String)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    service_line_id = Column(Integer, ForeignKey("service_line.name"))
-    expected_time_to_complete = Column(Integer)
-    difficulty_level = Column(
-        String, default="0"
-    )  # Added to store difficulty level of the course
-    tags = Column(
-        String, default="none"
-    )  # Added to facilitate better categorization and filtering
-    ratings = Column(Integer, default=0)
-    status = Column(String, default="approval pending")
-    creation_date = Column(
-        DateTime, default=func.now()
-    )  # To track when a course was created
-    approved_date = Column(DateTime, default=None)  # To track when a course was created
-    approved_by = Column(Integer, ForeignKey("users.id"))
-
-    thumbnail_file_id = Column(String, ForeignKey("files.FileID"))
-
-    # Relationships
-    approver = relationship(
-        "User", foreign_keys=[approved_by], backref="approved_courses"
-    )
-    service_line = relationship("ServiceLine", back_populates="courses")
-    chapters = relationship("Chapter", back_populates="course")
-    users_assigned = relationship(
-        "User", secondary=association_table, back_populates="courses_assigned"
-    )
-    enrollments = relationship("Enrollment", back_populates="course")
-    learning_paths = relationship(
-        "LearningPath", secondary=learning_path_courses, back_populates="courses"
-    )
-
-
 class Chapter(Base):
     __tablename__ = "chapters"
     id = Column(Integer, primary_key=True)
@@ -165,7 +126,26 @@ class Chapter(Base):
     # Relationships
     course = relationship("Course", back_populates="chapters")
     contents = relationship("Content", back_populates="chapter")
+    questions = relationship("Questions", back_populates="chapter")
 
+
+class Questions(Base):
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True)
+
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=True)
+    added_by = Column(Integer, ForeignKey("users.id"))
+    question = Column(String, nullable=False)
+    option_a = Column(String, nullable=False)
+    option_b = Column(String, nullable=False)
+    option_c = Column(String, nullable=False)
+    option_d = Column(String, nullable=False)
+    correct_answer = Column(String, nullable=False)
+
+    # Relationships
+    course = relationship("Course", back_populates="questions")
+    chapter = relationship("Chapter", back_populates="questions")
 
 class Content(Base):
     __tablename__ = "contents"
@@ -246,3 +226,76 @@ class Feedback(Base):
     # Relationships
     user = relationship("User", back_populates="feedbacks")
     course = relationship("Course", backref="feedbacks")
+
+
+class Course(Base):
+    __tablename__ = "courses"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String, nullable=False)
+    description = Column(String)
+    category = Column(String)
+    created_by = Column(Integer, ForeignKey("users.id"))
+    service_line_id = Column(Integer, ForeignKey("service_line.name"))
+    expected_time_to_complete = Column(Integer)
+    difficulty_level = Column(
+        String, default="0"
+    )  # Added to store difficulty level of the course
+    tags = Column(
+        String, default="none"
+    )  # Added to facilitate better categorization and filtering
+    ratings = Column(Integer, default=0)
+    status = Column(String, default="approval pending")
+    creation_date = Column(
+        DateTime, default=func.now()
+    )  # To track when a course was created
+    approved_date = Column(DateTime, default=None)  # To track when a course was created
+    approved_by = Column(Integer, ForeignKey("users.id"))
+    questions = relationship("Questions", back_populates="course")
+
+    thumbnail_file_id = Column(String, ForeignKey("files.FileID"))
+
+    # Relationships
+    approver = relationship(
+        "User", foreign_keys=[approved_by], backref="approved_courses"
+    )
+    service_line = relationship("ServiceLine", back_populates="courses")
+    chapters = relationship("Chapter", back_populates="course")
+    questions = relationship("Questions", back_populates="course")  # Corrected relationship
+
+    users_assigned = relationship(
+        "User", secondary=association_table, back_populates="courses_assigned"
+    )
+    enrollments = relationship("Enrollment", back_populates="course")
+    learning_paths = relationship(
+        "LearningPath", secondary=learning_path_courses, back_populates="courses"
+    )
+
+
+    # Calculated fields
+
+    chapters_count = column_property(
+        select(func.count(Chapter.id))
+        .where(Chapter.course_id == id)
+        .scalar_subquery()
+    )
+
+    enrolled_students_count = column_property(
+        select(func.count(Enrollment.id))
+        .where(Enrollment.course_id == id)
+        .scalar_subquery()
+    )
+    feedback_count = column_property(
+        select(func.count(Feedback.id))
+        .where(Feedback.course_id == id)
+        .scalar_subquery()
+    )
+    completed_students_count = column_property(
+        select(func.count(Enrollment.id))
+        .where((Enrollment.course_id == id) & (Enrollment.status == "Completed"))
+        .scalar_subquery()
+    )
+    average_rating = column_property(
+        select(func.avg(Feedback.rating))
+        .where(Feedback.course_id == id)
+        .scalar_subquery()
+    )
