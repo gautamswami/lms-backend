@@ -14,8 +14,9 @@ from dependencies import get_db
 from schemas import *
 from models import *
 from typing import Annotated, Union
-
+import pyotp
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status, Cookie
+from fastapi.responses import JSONResponse
 
 app = APIRouter(prefix="/um", tags=["User Management"])
 
@@ -30,12 +31,42 @@ TO_EMAIL = "akash21091999@gmail.com"
 SUBJECT = "Test Email"
 BODY = "This is a test email sent using SMTP in Python."
 
+global user_secrets
+user_secrets = {}
 
-def send_reset_email(email: str, token: str):
+
+def send_reset_email(email: str, f_name: str, l_name: str):
     msg = EmailMessage()
-    msg.set_content(f"Please use the following link to reset your password: \n{token}")
 
-    msg["Subject"] = "Reset Your Password"
+    if email not in user_secrets:
+        # Generate a new secret for the user
+        secret = pyotp.random_base32()
+        user_secrets[email] = secret
+    else:
+        secret = user_secrets[email]
+
+    totp = pyotp.TOTP(secret)
+    current_otp = totp.now()
+
+    msg.set_content(
+        f"""
+Dear {l_name} {f_name},
+
+We received a request to reset your password. To proceed with the password reset process, please use the following One-Time Password (OTP):
+
+{current_otp}
+
+This OTP is valid for the next 10 minutes. Please do not share this OTP with anyone for security reasons.
+
+If you did not request a password reset, please ignore this email or contact our support team immediately.
+
+Best regards,
+[Your Company Name] Support Team
+
+Contact us: [Support Email/Phone Number]"""
+    )
+
+    msg["Subject"] = "Your One-Time Password (OTP) for Password Reset"
     msg["From"] = FROM_EMAIL
     msg["To"] = email
     server = smtplib.SMTP(SMTP_SERVER, PORT)
@@ -44,6 +75,7 @@ def send_reset_email(email: str, token: str):
     text = msg.as_string()
     server.sendmail(FROM_EMAIL, email, text)
     server.quit()
+    print("User Secrets:", user_secrets)
 
 
 @app.post("/users/forgot-password/")
@@ -59,26 +91,39 @@ def forgot_password(
     user = crud.get_user_by_email(db, email=email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    token = auth.create_password_reset_token(email=email)
-    background_tasks.add_task(send_reset_email, email, token)
+    background_tasks.add_task(
+        send_reset_email, email, f_name=user.first_name, l_name=user.last_name
+    )
     return {"message": "Check your email for the reset link"}
 
 
 @app.post("/users/reset-password/")
-def reset_password(token: str, new_password: str, db: Session = Depends(get_db)):
+def reset_password(
+    email: str, otp: int, new_password: str, db: Session = Depends(get_db)
+):
     credentials_exception = HTTPException(status_code=400, detail="Invalid token")
+    print("User Secrets:", user_secrets)
     try:
-        email = auth.verify_token(token).username
+        user = crud.get_user_by_email(db, email=email)
+
+        if user.email not in user_secrets:
+            raise HTTPException(status_code=404, detail="Please retry")
+
+        secret = user_secrets[user.email]
+        totp = pyotp.TOTP(secret)
+
+        if totp.verify(otp):
+            user.password = auth.get_password_hash(new_password)
+            db.commit()
+            return JSONResponse(
+                status_code=200,
+                content="The OTP is valid.Your Password has been reset successfully",
+            )
+        else:
+            raise HTTPException(status_code=400, detail="The OTP is invalid.")
+
     except JWTError:
         raise credentials_exception
-
-    user = crud.get_user_by_email(db, email=email)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user.Password = auth.get_password_hash(new_password)
-    db.commit()
-    return {"message": "Password has been reset successfully"}
 
 
 @app.post("/users/", response_model=UserDisplay, status_code=status.HTTP_201_CREATED)
