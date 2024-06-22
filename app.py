@@ -8,6 +8,8 @@ from routers.um_routers import app as um_routers
 from routers.file_routers import app as file_routers
 from routers.course_routers import app as courses_routers
 from routers.stats_routers import app as stats_routers
+from routers.enrollment import app as enrollment
+from routers.quiz import app as quiz
 
 # from create_sample_db import create_sample_data
 
@@ -32,6 +34,8 @@ app.include_router(um_routers)
 app.include_router(file_routers)
 app.include_router(courses_routers)
 app.include_router(stats_routers)
+app.include_router(enrollment)
+app.include_router(quiz)
 
 if __name__ == "__main__":
     import uvicorn
