@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 
-from pydantic import BaseModel, EmailStr
+from fastapi import UploadFile
+from pydantic import BaseModel, EmailStr, Field
 
 
 class BaseModel_(BaseModel):
@@ -74,6 +75,11 @@ class ContentBase(BaseModel_):
     chapter_id: int
 
 
+class ContentCreate(BaseModel):
+    title: str = Field(..., description="The title of the content")
+    file: UploadFile = Field(..., description="The file to upload")
+
+
 class ContentCreate(ContentBase):
     pass
 
@@ -108,6 +114,7 @@ class QuestionUpdate(QuestionBase):
     option_c: Optional[str] = None
     option_d: Optional[str] = None
     correct_answer: Optional[str] = None
+    course_id: Optional[int] = None
 
 
 class ChapterBase(BaseModel_):
@@ -135,6 +142,8 @@ class CourseCreate(BaseModel_):
     expected_time_to_complete: int
     difficulty_level: Optional[str]  # Added to reflect the course difficulty level
     tags: Optional[str]  # Added to handle course tagging feature
+    entity: Optional[str]  # Added to handle course tagging feature
+    service_line_id: Optional[str]
 
 
 class CourseSortDisplay(CourseCreate):
@@ -157,6 +166,17 @@ class CourseFullDisplay(CourseSortDisplay):
 
     class Config:
         from_attributes = True
+
+
+class CourseUpdate(CourseCreate):
+    title: Optional[str]
+    description: Optional[str]
+    category: Optional[str]
+    expected_time_to_complete: Optional[int]
+    difficulty_level: Optional[str]
+    tags: Optional[str]
+    entity: Optional[str]
+    service_line_id: Optional[str]
 
 
 # ############################################ Course ENDS HERE ####################################################
@@ -287,7 +307,7 @@ class EnrollmentRequest(BaseModel_):
 class Token(BaseModel_):
     access_token: str
     token_type: str
-    user_details: UserDisplay
+    user_details: Union[UserDisplay, InstructorDisplay]
 
 
 class TokenData(BaseModel_):

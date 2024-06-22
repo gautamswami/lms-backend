@@ -251,12 +251,17 @@ class Course(Base):
     approved_date = Column(DateTime, default=None)  # To track when a course was created
     approved_by = Column(Integer, ForeignKey("users.id"))
     questions = relationship("Questions", back_populates="course")
+    entity = Column(String)  # Added to manage multi-tenancy and service line filtering
 
     thumbnail_file_id = Column(String, ForeignKey("files.FileID"))
 
     # Relationships
     approver = relationship(
         "User", foreign_keys=[approved_by], backref="approved_courses"
+    )
+
+    creator = relationship(
+        "User", foreign_keys=[created_by], backref="approved_courses"
     )
     service_line = relationship("ServiceLine", back_populates="courses")
     chapters = relationship("Chapter", back_populates="course")
