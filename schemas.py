@@ -254,13 +254,22 @@ class TraineeProfileView(UserDisplay):
 
 # Learning Path Models for assigning and displaying learning paths
 class LearningPathBase(BaseModel_):
-    name: str
-    expiry_date: Optional[datetime]  # Date when the learning path expires
+    name: str = Field(..., description="The name of the learning path")
+    entity: str = Field(None, description="The entity associated with the learning path")
+    service_line_id: int = Field(..., description="The service line ID associated with the learning path")
+
+class LearningPathCreate(LearningPathBase):
+    course_ids: List[int] = Field(..., description="List of course IDs included in the learning path")
+
+class LearningPathUpdate(LearningPathBase):
+    # complete this too
+    course_ids: List[int] = Field(None, description="List of course IDs included in the learning path, optional for updates")
 
 
 class LearningPathDisplay(LearningPathBase):
+
     id: int
-    courses: List[CourseFullDisplay]  # List of courses in the learning path
+    courses: List[CourseSortDisplay]  # List of courses in the learning path
 
     class Config:
         from_attributes = True
@@ -297,7 +306,8 @@ class FeedbackDisplay(FeedbackCreate):
 
 
 class EnrollmentRequest(BaseModel_):
-    course_id: int
+    course_id: Optional[int]
+    learning_path_id: Optional[int]
     user_ids: list[int]  # List of user IDs to enroll
 
     class Config:
