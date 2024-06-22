@@ -261,7 +261,7 @@ class Course(Base):
     )
 
     creator = relationship(
-        "User", foreign_keys=[created_by], backref="approved_courses"
+        "User", foreign_keys=[created_by], backref="created_courses"
     )
     service_line = relationship("ServiceLine", back_populates="courses")
     chapters = relationship("Chapter", back_populates="course")
