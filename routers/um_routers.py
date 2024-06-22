@@ -215,6 +215,13 @@ def get_all(
             "role_name": "Instructor",
         },
     )
+    admins = crud.get_users_by_filter(
+        db=db,
+        filters={
+            "role_name": "Admin",
+        },
+    )
+    admin_displays = [UserDisplay.from_orm(admin) for admin in admins]
     designations = db.query(Designations).all()
     service_lines = db.query(ServiceLine).all()
     external_roles = db.query(ExternalRoles).all()
@@ -247,6 +254,7 @@ def get_all(
 
     return UM_send_all(
         instructors=instructor_displays,
+        admins=admin_displays,
         designations=[
             DesignationModel.from_orm(designation) for designation in designations
         ],

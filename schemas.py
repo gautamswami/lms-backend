@@ -326,6 +326,7 @@ class InternalRoleModel(BaseModel_):
 
 class UM_send_all(BaseModel_):
     instructors: List[InstructorDisplay]
+    admins: List[UserDisplay]
     designations: List[DesignationModel]
     service_lines: List[ServiceLineModel]
     external_roles: List[ExternalRoleModel]
