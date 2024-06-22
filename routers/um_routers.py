@@ -98,13 +98,13 @@ def forgot_password(
 
 
 @app.post("/users/reset-password/")
-def reset_password(
-    email: str, otp: int, new_password: str, db: Session = Depends(get_db)
-):
+def reset_password(reset: ResetPassword, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=400, detail="Invalid token")
-    print("User Secrets:", user_secrets)
+
     try:
-        user = crud.get_user_by_email(db, email=email)
+        user = crud.get_user_by_email(db, email=reset.email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
         if user.email not in user_secrets:
             raise HTTPException(status_code=404, detail="Please retry")
@@ -112,17 +112,23 @@ def reset_password(
         secret = user_secrets[user.email]
         totp = pyotp.TOTP(secret)
 
-        if totp.verify(otp):
-            user.password = auth.get_password_hash(new_password)
+        # Verify OTP with additional leeway for time discrepancies
+        if totp.verify(reset.otp, valid_window=1):
+            user.password = auth.get_password_hash(reset.new_password)
             db.commit()
+            print(f"Password reset successful for user: {reset.email}")
             return JSONResponse(
                 status_code=200,
-                content="The OTP is valid.Your Password has been reset successfully",
+                content="The OTP is valid. Your password has been reset successfully.",
             )
         else:
+            print(f"Invalid OTP for user: {reset.email}")
             raise HTTPException(status_code=400, detail="The OTP is invalid.")
 
-    except JWTError:
+    except HTTPException as http_exec:
+        raise http_exec
+    except Exception as e:
+        print(f"Error in password reset: {str(e)}")
         raise credentials_exception
 
 

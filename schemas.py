@@ -355,3 +355,12 @@ class UM_send_all(BaseModel_):
 
     class Config:
         from_attributes = True
+
+
+class ResetPassword(BaseModel_):
+    email: str
+    otp: str
+    new_password: str
+
+    class Config:
+        from_attributes = True
