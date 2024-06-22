@@ -13,6 +13,17 @@ from schemas import (CourseFullDisplay, EnrollmentRequest)
 app = APIRouter(tags=['course', 'enrollment'])
 
 
+# Enroll the current user into a course
+@app.post("/enroll/self/", status_code=201)
+async def enroll_self(request: EnrollmentRequest,
+                      db: Session = Depends(get_db),
+                      current_user: User = Depends(get_current_user)):
+    if len(request.user_ids) != 1 or request.user_ids[0] != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only enroll yourself.")
+
+    return enroll_users(request.course_id, request.user_ids, db)
+
+
 @app.post("/enroll/by/instructors/", status_code=201)
 async def enroll_by_instructor(request: EnrollmentRequest, db: Session = Depends(get_db),
                                current_user: User = Depends(get_current_user)):

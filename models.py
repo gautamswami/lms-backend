@@ -206,15 +206,13 @@ class LearningPath(Base):
     __tablename__ = "learning_paths"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    expiry_date = Column(Date)
-    # Relationships
-    users = relationship(
-        "User", secondary=user_learning_paths, back_populates="learning_paths"
-    )
-    courses = relationship(
-        "Course", secondary=learning_path_courses, back_populates="learning_paths"
-    )
+    service_line_id = Column(Integer, ForeignKey("service_line.name"))
+    entity = Column(String)
+    courses = relationship("Course", secondary=learning_path_courses, back_populates="learning_paths")
 
+    @property
+    def expected_time_to_complete(self):
+        return sum(course.expected_time_to_complete for course in self.courses)
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
