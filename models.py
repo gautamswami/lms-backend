@@ -101,9 +101,15 @@ class User(Base):
     # learning_paths = relationship(
     #     "LearningPath", secondary=user_learning_paths, back_populates="users"
     # )
-    counselor = relationship('User', remote_side=[id], backref=backref('counselees', overlaps="team_members"))
-    team_members = relationship('User', foreign_keys=[counselor_id], back_populates='counselor', overlaps="counselees")
-
+    counselor = relationship(
+        "User", remote_side=[id], backref=backref("counselees", overlaps="team_members")
+    )
+    team_members = relationship(
+        "User",
+        foreign_keys=[counselor_id],
+        back_populates="counselor",
+        overlaps="counselees",
+    )
 
     __table_args__ = (Index("idx_user_email", "email"),)
 
@@ -146,6 +152,7 @@ class Questions(Base):
     # Relationships
     course = relationship("Course", back_populates="questions")
     chapter = relationship("Chapter", back_populates="questions")
+
 
 class Content(Base):
     __tablename__ = "contents"
@@ -208,11 +215,14 @@ class LearningPath(Base):
     name = Column(String, nullable=False)
     service_line_id = Column(Integer, ForeignKey("service_line.name"))
     entity = Column(String)
-    courses = relationship("Course", secondary=learning_path_courses, back_populates="learning_paths")
+    courses = relationship(
+        "Course", secondary=learning_path_courses, back_populates="learning_paths"
+    )
 
     @property
     def expected_time_to_complete(self):
         return sum(course.expected_time_to_complete for course in self.courses)
+
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
@@ -258,12 +268,12 @@ class Course(Base):
         "User", foreign_keys=[approved_by], backref="approved_courses"
     )
 
-    creator = relationship(
-        "User", foreign_keys=[created_by], backref="created_courses"
-    )
+    creator = relationship("User", foreign_keys=[created_by], backref="created_courses")
     service_line = relationship("ServiceLine", back_populates="courses")
     chapters = relationship("Chapter", back_populates="course")
-    questions = relationship("Questions", back_populates="course")  # Corrected relationship
+    questions = relationship(
+        "Questions", back_populates="course"
+    )  # Corrected relationship
 
     users_assigned = relationship(
         "User", secondary=association_table, back_populates="courses_assigned"
@@ -273,13 +283,10 @@ class Course(Base):
         "LearningPath", secondary=learning_path_courses, back_populates="courses"
     )
 
-
     # Calculated fields
 
     chapters_count = column_property(
-        select(func.count(Chapter.id))
-        .where(Chapter.course_id == id)
-        .scalar_subquery()
+        select(func.count(Chapter.id)).where(Chapter.course_id == id).scalar_subquery()
     )
 
     enrolled_students_count = column_property(

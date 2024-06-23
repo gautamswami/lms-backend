@@ -182,7 +182,7 @@ def create_sample_data():
             created_by=instructor.id,
             service_line_id=service_lines[0].name,
             expected_time_to_complete=10,
-            tags="advanced,ml"
+            tags="advanced,ml",
         )
         course2 = Course(
             title="course2",
@@ -205,8 +205,7 @@ def create_sample_data():
             approved_by=admin.id,
             approved_date=datetime.now(),
             status="approved",
-            tags="advanced,ml"
-
+            tags="advanced,ml",
         )
         course4 = Course(
             title="course4",
@@ -240,7 +239,7 @@ def create_sample_data():
             approved_by=admin.id,
             approved_date=datetime.now(),
             status="approved",
-            tags="beginner,python"
+            tags="beginner,python",
         )
 
         db.add_all([course1, course2, course3, course4, course5, course6])
@@ -285,7 +284,7 @@ def create_sample_data():
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete),
             year=datetime.now().year,
-            status='Completed'
+            status="Completed",
         )
         enrollment2 = Enrollment(
             user_id=employee.id,
@@ -307,7 +306,7 @@ def create_sample_data():
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
             year=datetime.now().year,
-            status='Completed'
+            status="Completed",
         )
         enrollment5 = Enrollment(
             user_id=employee.id,
@@ -376,10 +375,9 @@ def create_sample_data():
         # Create learning paths
         learning_path1 = LearningPath(
             name="Python Developer Path",
-            expiry_date=datetime.now() + timedelta(days=365),
         )
         learning_path1.courses.append(course1)
-        learning_path1.users.append(employee)
+        # learning_path1.users.append(employee)
 
         db.add(learning_path1)
         db.commit()
