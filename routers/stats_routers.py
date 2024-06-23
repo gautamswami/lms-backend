@@ -38,7 +38,7 @@ def dash_stats(
         """
         SELECT 
             e.course_id, e.status, e.completion_percentage, e.due_date, 
-            c.expected_time_to_complete, c.category
+            c.expected_time_to_complete, c.title, c.category
         FROM 
             enrollments e
         JOIN 
@@ -52,9 +52,9 @@ def dash_stats(
 
     total_completed_hours = 0
     total_pending_hours = 0
-    pending_courses_count = 0
-    completed_courses_count = 0
-    overdue_courses_count = 0
+    pending_courses = []
+    completed_courses = []
+    overdue_courses = []
     technical_hours = 0
     non_technical_hours = 0
 
@@ -64,12 +64,13 @@ def dash_stats(
         status = enrollment.status
         completion_percentage = enrollment.completion_percentage
         expected_time_to_complete = enrollment.expected_time_to_complete
+        course_title = enrollment.title
         due_date = enrollment.due_date
         category = enrollment.category
 
         if status == "Completed":
             total_completed_hours += expected_time_to_complete
-            completed_courses_count += 1
+            completed_courses.append(course_title)
             if category == "Technical":
                 technical_hours += expected_time_to_complete
             else:
@@ -79,9 +80,9 @@ def dash_stats(
             pending_hours = expected_time_to_complete - completed_hours
             total_completed_hours += completed_hours
             total_pending_hours += pending_hours
-            pending_courses_count += 1
+            pending_courses.append(course_title)
             if due_date and datetime.strptime(due_date, "%Y-%m-%d") < current_time:
-                overdue_courses_count += 1
+                overdue_courses.append(course_title)
             if category == "Technical":
                 technical_hours += completed_hours
             else:
@@ -89,15 +90,21 @@ def dash_stats(
 
     compliance_status = technical_hours >= 50 and non_technical_hours >= 15
 
-    result = {
+    numeric_stats = {
         "total_completed_hours": total_completed_hours,
         "total_pending_hours": total_pending_hours,
-        "pending_courses_count": pending_courses_count,
-        "completed_courses_count": completed_courses_count,
-        "overdue_courses_count": overdue_courses_count,
+        "pending_courses_count": len(pending_courses),
+        "completed_courses_count": len(completed_courses),
+        "overdue_courses_count": len(overdue_courses),
         "compliance_status": compliance_status,
         "technical_hours": technical_hours,
         "non_technical_hours": non_technical_hours,
+    }
+
+    details = {
+        "pending_courses": pending_courses,
+        "completed_courses": completed_courses,
+        "overdue_courses": overdue_courses,
     }
 
     # Additional stats based on user role
@@ -124,10 +131,38 @@ def dash_stats(
 
         total_courses = db.execute(total_courses_query, {"user_id": user_id}).scalar()
 
-        result.update(
+        courses_table_query = text(
+            """
+            SELECT c.title, AVG(f.rating) AS average_rating, COUNT(e.user_id) AS total_users
+            FROM courses c
+            LEFT JOIN feedbacks f ON c.id = f.course_id
+            LEFT JOIN enrollments e ON c.id = e.course_id
+            WHERE c.created_by = :user_id
+            GROUP BY c.id
+        """
+        )
+
+        courses_table = db.execute(courses_table_query, {"user_id": user_id}).fetchall()
+
+        courses_table_result = [
+            {
+                "title": row.title,
+                "average_rating": row.average_rating,
+                "total_users": row.total_users,
+            }
+            for row in courses_table
+        ]
+
+        numeric_stats.update(
             {
                 "total_users": total_users,
                 "total_courses": total_courses,
+            }
+        )
+
+        details.update(
+            {
+                "courses_table": courses_table_result,
             }
         )
 
@@ -159,11 +194,41 @@ def dash_stats(
             total_courses_query, {"service_line_id": service_line_id}
         ).scalar()
 
-        result.update(
+        courses_table_query = text(
+            """
+            SELECT c.title, AVG(f.rating) AS average_rating, COUNT(e.user_id) AS total_users
+            FROM courses c
+            LEFT JOIN feedbacks f ON c.id = f.course_id
+            LEFT JOIN enrollments e ON c.id = e.course_id
+            WHERE c.service_line_id = :service_line_id
+            GROUP BY c.id
+        """
+        )
+
+        courses_table = db.execute(
+            courses_table_query, {"service_line_id": service_line_id}
+        ).fetchall()
+
+        courses_table_result = [
+            {
+                "title": row.title,
+                "average_rating": row.average_rating,
+                "total_users": row.total_users,
+            }
+            for row in courses_table
+        ]
+
+        numeric_stats.update(
             {
                 "total_users": total_users,
                 "total_courses": total_courses,
             }
         )
 
-    return DashStats(**result)
+        details.update(
+            {
+                "courses_table": courses_table_result,
+            }
+        )
+
+    return DashStats(numeric_stats=numeric_stats, details=details)

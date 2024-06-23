@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict, Any
 
 from fastapi import UploadFile
 from pydantic import BaseModel, EmailStr, Field
@@ -183,16 +183,8 @@ class CourseUpdate(CourseCreate):
 
 
 class DashStats(BaseModel_):
-    total_completed_hours: int
-    total_pending_hours: int
-    pending_courses_count: int
-    completed_courses_count: int
-    overdue_courses_count: int
-    compliance_status: bool
-    technical_hours: int
-    non_technical_hours: int
-    total_users: int = 0
-    total_courses: int = 0
+    numeric_stats: Dict[str, Any]
+    details: Dict[str, Any]
 
 
 # ############################################ STATS ENDS HERE ####################################################
