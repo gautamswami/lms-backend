@@ -256,7 +256,7 @@ class TraineeProfileView(UserDisplay):
 class LearningPathBase(BaseModel_):
     name: str = Field(..., description="The name of the learning path")
     entity: str = Field(None, description="The entity associated with the learning path")
-    service_line_id: int = Field(..., description="The service line ID associated with the learning path")
+    service_line_id: str = Field(..., description="The service line ID associated with the learning path")
 
 class LearningPathCreate(LearningPathBase):
     course_ids: List[int] = Field(..., description="List of course IDs included in the learning path")
