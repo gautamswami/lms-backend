@@ -183,13 +183,20 @@ class CourseUpdate(CourseCreate):
 
 
 class DashStats(BaseModel_):
-    enrolled_count: int
-    active_count: int
-    completed_count: int
+    total_completed_hours: int
+    total_pending_hours: int
+    pending_courses: List[str]
+    completed_courses: List[str]
+    overdue_courses: List[str]
+    compliance_status: str
+    technical_hours: int
+    non_technical_hours: int
+    total_users: Optional[int] = None
+    total_courses: Optional[int] = None
+    courses_table: Optional[List[dict]] = None
 
-
-class UserDashStats(CourseFullDisplay, DashStats):
-    pass
+    class Config:
+        from_attributes = True
 
 
 # ############################################ STATS ENDS HERE ####################################################
@@ -255,15 +262,26 @@ class TraineeProfileView(UserDisplay):
 # Learning Path Models for assigning and displaying learning paths
 class LearningPathBase(BaseModel_):
     name: str = Field(..., description="The name of the learning path")
-    entity: str = Field(None, description="The entity associated with the learning path")
-    service_line_id: str = Field(..., description="The service line ID associated with the learning path")
+    entity: str = Field(
+        None, description="The entity associated with the learning path"
+    )
+    service_line_id: str = Field(
+        ..., description="The service line ID associated with the learning path"
+    )
+
 
 class LearningPathCreate(LearningPathBase):
-    course_ids: List[int] = Field(..., description="List of course IDs included in the learning path")
+    course_ids: List[int] = Field(
+        ..., description="List of course IDs included in the learning path"
+    )
+
 
 class LearningPathUpdate(LearningPathBase):
     # complete this too
-    course_ids: List[int] = Field(None, description="List of course IDs included in the learning path, optional for updates")
+    course_ids: List[int] = Field(
+        None,
+        description="List of course IDs included in the learning path, optional for updates",
+    )
 
 
 class LearningPathDisplay(LearningPathBase):
@@ -371,6 +389,13 @@ class ResetPassword(BaseModel_):
     email: str
     otp: str
     new_password: str
+
+    class Config:
+        from_attributes = True
+
+
+class DashInput(BaseModel_):
+    email: str
 
     class Config:
         from_attributes = True
