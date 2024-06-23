@@ -10,7 +10,7 @@ from dependencies import get_db
 from models import Course, User, Enrollment, LearningPath
 from schemas import (CourseUpdate, LearningPathDisplay, LearningPathCreate)
 
-app = APIRouter(tags=['course'])
+app = APIRouter(tags=['learning_path'])
 
 
 # ------------------- Course Operations -------------------

@@ -10,6 +10,7 @@ from routers.course_routers import app as courses_routers
 from routers.stats_routers import app as stats_routers
 from routers.enrollment import app as enrollment
 from routers.quiz import app as quiz
+from routers.learning_path_routers import app as learning_path_routers
 
 # from create_sample_db import create_sample_data
 
@@ -36,6 +37,7 @@ app.include_router(courses_routers)
 app.include_router(stats_routers)
 app.include_router(enrollment)
 app.include_router(quiz)
+app.include_router(learning_path_routers)
 
 if __name__ == "__main__":
     import uvicorn
