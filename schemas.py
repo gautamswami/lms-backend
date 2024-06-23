@@ -80,8 +80,8 @@ class ContentCreate(BaseModel):
     file: UploadFile = Field(..., description="The file to upload")
 
 
-class ContentCreate(ContentBase):
-    pass
+# class ContentCreate(ContentBase):
+#     pass
 
 
 class ContentDisplay(ContentBase):
@@ -123,8 +123,9 @@ class ChapterBase(BaseModel_):
     course_id: int
 
 
-class ChapterCreate(ChapterBase):
-    pass
+class ChapterCreate(BaseModel_):
+    title: str
+    description: str
 
 
 class ChapterDisplay(ChapterCreate):
