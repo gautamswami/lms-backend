@@ -281,6 +281,52 @@ def get_all(
     )
 
 
+@app.get("/counselor/{counselor_id}/team_members", response_model=List[UserTeamView])
+def get_team_members(counselor_id: int, db: Session = Depends(get_db)):
+    # Fetch the counselor to validate existence and role
+    counselor = db.query(User).filter(User.id == counselor_id, User.role_name == "Instructor").first()
+    if not counselor:
+        raise HTTPException(status_code=404, detail="Counselor not found")
+
+    team_members = counselor.team_members
+    if not team_members:
+        return []
+
+    team_member_details = []
+    for member in team_members:
+        # enrollments = db.query(Enrollment).filter(Enrollment.user_id == member.id).all()
+        completed_trainings = [e for e in member.enrollments if e.status == "Completed"]
+        pending_trainings = [e for e in member.enrollments if e.status == "Enrolled"]
+
+        mandatory_overdue = sum(
+            1 for e in member.enrollments if e.course.category == "Mandatory" and e.status != "Completed" and e.due_date < datetime.now())
+
+        completed_hours = sum(e.course.expected_time_to_complete for e in completed_trainings)
+        technical_hours = sum(
+            e.course.expected_time_to_complete for e in completed_trainings if e.course.category == "technical")
+        non_technical_hours = sum(
+            e.course.expected_time_to_complete for e in completed_trainings if e.course.category == "nonTechnical")
+
+        compliance_status = "Compliant" if technical_hours >= 50 and non_technical_hours >= 15 else "Non-Compliant"
+
+        team_member_details.append(UserTeamView(
+            first_name=member.first_name,
+            last_name=member.last_name,
+            email=member.email,
+            role_name=member.role_name,
+            employee_id=member.employee_id,
+            designation=member.designation,
+            service_line_id=member.service_line_id,
+            external_role_name=member.external_role_name,
+            number_of_trainings_completed=len(completed_trainings),
+            hours_of_training_completed=completed_hours,
+            number_of_trainings_pending=len(pending_trainings),
+            number_of_mandatory_trainings_overdue=mandatory_overdue,
+            compliance_status=compliance_status,
+            reminder_needed=mandatory_overdue > 0
+        ))
+
+    return team_member_details
 # @app.post("/users/{user_id}/profile_pic", status_code=200)
 # async def upload_profile_pic(
 #     user_id: int = Path(..., description="The ID of the course"),
