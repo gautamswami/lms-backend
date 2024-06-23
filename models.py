@@ -110,6 +110,7 @@ class User(Base):
         back_populates="counselor",
         overlaps="counselees",
     )
+    external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
 
     __table_args__ = (Index("idx_user_email", "email"),)
 
@@ -309,3 +310,22 @@ class Course(Base):
         .where(Feedback.course_id == id)
         .scalar_subquery()
     )
+
+
+
+class ExternalCertification(Base):
+    __tablename__ = "external_certifications"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    course_name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    date_of_completion = Column(Date, nullable=False)
+    hours = Column(Integer, nullable=False)
+    file_id = Column(String, ForeignKey("files.FileID"), nullable=False)
+    certificate_provider = Column(String, nullable=False)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Relationships
+    file = relationship("File")
+    uploaded_by = relationship("User", back_populates="external_certifications")
+
+

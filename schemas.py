@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
+from datetime import date
 
 from fastapi import UploadFile, File
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator, field_validator
 
 
 class BaseModel_(BaseModel):
@@ -396,3 +397,56 @@ class DashInput(BaseModel_):
 
     class Config:
         from_attributes = True
+
+
+# ======================================FEEDBACK======================================
+
+class FeedbackCreate(BaseModel):
+    user_id: Optional[int] = None
+    course_id: Optional[int] = None
+    description: str
+    rating: int
+
+    @field_validator('user_id', always=True)
+    def check_exclusivity(cls, v, values, **kwargs):
+        if ('course_id' in values and v is not None and values['course_id'] is not None) or (
+                v is None and 'course_id' not in values):
+            raise ValueError("Either user_id or course_id must be provided, not both or none.")
+        return v
+
+
+class FeedbackDisplay(BaseModel):
+    id: int
+    user_id: Optional[int]
+    course_id: Optional[int]
+    description: str
+    rating: int
+    submitter: UserBase
+
+    class Config:
+        orm_mode = True
+
+
+# ======================================ExternalCertification======================================
+
+
+
+class ExternalCertificationCreate(BaseModel):
+    course_name: str
+    category: str
+    date_of_completion: date
+    hours: int
+    certificate_provider: str
+
+class ExternalCertificationDisplay(BaseModel):
+    id: int
+    course_name: str
+    category: str
+    date_of_completion: date
+    hours: int
+    file_id: str
+    certificate_provider: str
+    uploaded_by_id: int
+
+    class Config:
+        orm_mode = True
