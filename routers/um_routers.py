@@ -149,6 +149,15 @@ def create_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
+@app.get("/users/", response_model=List[UserDisplay], status_code=status.HTTP_201_CREATED)
+def get_all_user(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
+):
+    users = db.query(User).all()
+    return users
+
+
 @app.get("/users/{user_id}", response_model=UserDisplay)
 def read_user(
     user_id: int,
