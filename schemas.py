@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
 
-from fastapi import UploadFile
+from fastapi import UploadFile, File
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -77,7 +77,7 @@ class ContentBase(BaseModel_):
 
 class ContentCreate(BaseModel):
     title: str = Field(..., description="The title of the content")
-    file: UploadFile = Field(..., description="The file to upload")
+    file_index: int
 
 
 # class ContentCreate(ContentBase):
@@ -126,6 +126,8 @@ class ChapterBase(BaseModel_):
 class ChapterCreate(BaseModel_):
     title: str
     description: str
+    quizzes: List[QuestionCreate] = Field(default_factory=list)
+    contents: List[ContentCreate] = Field(default_factory=list)
 
 
 class ChapterDisplay(ChapterCreate):
@@ -145,6 +147,7 @@ class CourseCreate(BaseModel_):
     tags: Optional[str]  # Added to handle course tagging feature
     entity: Optional[str]  # Added to handle course tagging feature
     service_line_id: Optional[str]
+    chapters: List[ChapterCreate] = Field(default_factory=list)
 
 
 class CourseSortDisplay(CourseCreate):

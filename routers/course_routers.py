@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Form
 from sqlalchemy.orm import Session, joinedload
 
 # Import local modules
@@ -30,11 +30,11 @@ app = APIRouter(tags=["course"])
 
 
 @app.post("/courses", response_model=CourseFullDisplay)
-def create_course(
-    course: CourseCreate,
-    chapters: List[ChapterCreate],
-    quizzes: List[List[QuestionCreate]],
-    contents: List[List[ContentCreate]],
+async def create_course(
+    course_data: CourseCreate = Form(
+        ...
+    ),  # Assume JSON data is submitted as form field
+    files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -42,31 +42,39 @@ def create_course(
         raise HTTPException(
             status_code=403, detail="Only instructors can create courses"
         )
-    if course.service_line_id is None:
-        course.service_line_id = current_user.service_line_id
-    new_course = Course(**course.dict(), created_by=current_user.id)
+
+    if course_data.service_line_id is None:
+        course_data.service_line_id = current_user.service_line_id
+
+    new_course = Course(
+        **course_data.dict(exclude={"chapters"}), created_by=current_user.id
+    )
     db.add(new_course)
     db.commit()
     db.refresh(new_course)
 
-    for chapter_data, quiz_data_list, content_data_list in zip(
-        chapters, quizzes, contents
-    ):
-        new_chapter = Chapter(**chapter_data.dict(), course_id=new_course.id)
+    for chapter_data in course_data.chapters:
+        new_chapter = Chapter(
+            **chapter_data.dict(exclude={"quizzes", "contents"}),
+            course_id=new_course.id
+        )
         db.add(new_chapter)
         db.commit()
         db.refresh(new_chapter)
 
-        for quiz_data in quiz_data_list:
+        for quiz_data in chapter_data.quizzes:
             new_question = Questions(chapter_id=new_chapter.id, **quiz_data.dict())
             db.add(new_question)
             db.commit()
 
-        for content_data in content_data_list:
+        for content_data in chapter_data.contents:
+            content_file = files[
+                content_data.file_index
+            ]  # Access the file using the index
             file_storage = FileStorage()
             try:
                 file_metadata = file_storage.save_file(
-                    content_data.file, db, type="Course content"
+                    content_file, db, type="Course content"
                 )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
@@ -74,7 +82,7 @@ def create_course(
             new_content = Content(
                 chapter_id=new_chapter.id,
                 title=content_data.title,
-                content_type=content_data.file.content_type,
+                content_type=content_file.content_type,
                 file_id=file_metadata.FileID,
             )
             db.add(new_content)
