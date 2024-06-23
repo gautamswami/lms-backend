@@ -185,18 +185,14 @@ class CourseUpdate(CourseCreate):
 class DashStats(BaseModel_):
     total_completed_hours: int
     total_pending_hours: int
-    pending_courses: List[str]
-    completed_courses: List[str]
-    overdue_courses: List[str]
-    compliance_status: str
+    pending_courses_count: int
+    completed_courses_count: int
+    overdue_courses_count: int
+    compliance_status: bool
     technical_hours: int
     non_technical_hours: int
-    total_users: Optional[int] = None
-    total_courses: Optional[int] = None
-    courses_table: Optional[List[dict]] = None
-
-    class Config:
-        from_attributes = True
+    total_users: int = 0
+    total_courses: int = 0
 
 
 # ############################################ STATS ENDS HERE ####################################################
