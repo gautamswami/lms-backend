@@ -86,8 +86,6 @@ def update_question(learning_path_id: int, db: Session = Depends(get_db), curren
     path = db.query(LearningPath).filter(LearningPath.id == learning_path_id).first()
     if not path:
         raise HTTPException(status_code=404, detail="Learning path not found")
-    if db.query(Enrollment).join(Course).filter(Course.learning_paths.any(id=learning_path_id)).count() > 0:
-        raise HTTPException(status_code=400, detail="Cannot delete learning path with active enrollments")
     db.delete(path)
     db.commit()
     return Response(status_code=204)
