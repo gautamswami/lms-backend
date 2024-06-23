@@ -162,6 +162,7 @@ class CourseSortDisplay(CourseCreate):
 
 class CourseFullDisplay(CourseSortDisplay):
     approver: Optional[UserDisplay]
+    creator: Optional[UserDisplay]
     chapters: List[ChapterDisplay] = []
 
     class Config:
