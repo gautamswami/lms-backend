@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from dependencies import get_db
 from models import Questions
-from schemas import QuestionDisplay, QuestionCreate, QuestionUpdate
+from schemas import QuestionDisplay, QuestionCreate, QuestionUpdate, QuestionGetRequest
 
 from typing import List, Optional
 from fastapi import Query
@@ -65,20 +65,23 @@ def update_question(question_id: int, question_data: QuestionUpdate, db: Session
     return question
 
 
-@app.get("/questions", response_model=List[QuestionDisplay])
-def get_questions_by_course_or_chapter(course_id: Optional[int] = Query(None), chapter_id: Optional[int] = Query(None),
-                                       db: Session = Depends(get_db)):
+@app.post("/questions", response_model=List[QuestionDisplay])
+def get_questions_by_course_or_chapter(request: QuestionGetRequest, db: Session = Depends(get_db)):
     query = db.query(Questions)
-    if course_id is not None:
-        query = query.filter(Questions.course_id == course_id)
-    if chapter_id is not None:
-        query = query.filter(Questions.chapter_id == chapter_id)
+
+    # Check if course_id list is not empty and apply filter
+    if request.course_id:
+        query = query.filter(Questions.course_id.in_(request.course_id))
+
+    # Check if chapter_id list is not empty and apply filter
+    if request.chapter_id:
+        query = query.filter(Questions.chapter_id.in_(request.chapter_id))
 
     questions = query.all()
     if not questions:
-        raise HTTPException(status_code=404, detail="No questions found for the specified course or chapter")
-    return questions
+        raise HTTPException(status_code=404, detail="No questions found for the specified courses or chapters")
 
+    return questions
 
 @app.delete("/questions/{question_id}", status_code=204)
 def delete_question(question_id: int, db: Session = Depends(get_db)):

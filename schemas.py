@@ -107,6 +107,11 @@ class QuestionDisplay(QuestionBase):
     id: str
 
 
+class QuestionGetRequest(BaseModel):
+    course_id: List[int] = []
+    chapter_id: List[int] = []
+
+
 class QuestionUpdate(QuestionBase):
     question: Optional[str] = None
     option_a: Optional[str] = None
@@ -278,7 +283,6 @@ class LearningPathUpdate(LearningPathBase):
 
 
 class LearningPathDisplay(LearningPathBase):
-
     id: int
     courses: List[CourseSortDisplay]  # List of courses in the learning path
 
