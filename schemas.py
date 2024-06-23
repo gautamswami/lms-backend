@@ -407,7 +407,7 @@ class FeedbackCreate(BaseModel):
     description: str
     rating: int
 
-    @field_validator('user_id', always=True)
+    @field_validator('user_id', mode='before')
     def check_exclusivity(cls, v, values, **kwargs):
         if ('course_id' in values and v is not None and values['course_id'] is not None) or (
                 v is None and 'course_id' not in values):
@@ -424,7 +424,7 @@ class FeedbackDisplay(BaseModel):
     submitter: UserBase
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # ======================================ExternalCertification======================================
@@ -449,4 +449,4 @@ class ExternalCertificationDisplay(BaseModel):
     uploaded_by_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
