@@ -24,6 +24,15 @@ class UserBase(BaseModel_):
     external_role_name: str
 
 
+class UserTeamView(UserBase):
+    number_of_trainings_completed: int
+    hours_of_training_completed: int
+    number_of_trainings_pending: int
+    number_of_mandatory_trainings_overdue: int
+    compliance_status: str
+    reminder_needed: bool
+
+
 class UserDisplay(UserBase):
     id: int
     counselor: Optional[UserBase]
@@ -427,8 +436,12 @@ class FeedbackDisplay(BaseModel):
         from_attributes = True
 
 
-# ======================================ExternalCertification======================================
+class CertificationFilter(BaseModel):
+    category: Optional[str] = Field(None, description="Filter by the category of the certification")
+    uploaded_by_id: Optional[int] = Field(None, description="Filter by the user ID who uploaded the certification")
 
+
+# ======================================ExternalCertification======================================
 
 
 class ExternalCertificationCreate(BaseModel):
@@ -437,6 +450,8 @@ class ExternalCertificationCreate(BaseModel):
     date_of_completion: date
     hours: int
     certificate_provider: str
+    files: UploadFile = File(...)
+
 
 class ExternalCertificationDisplay(BaseModel):
     id: int

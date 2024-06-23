@@ -8,22 +8,21 @@ from auth import get_current_user
 from dependencies import get_db
 from file_storage import FileStorage
 from models import ExternalCertification, User
-from schemas import ExternalCertificationDisplay, ExternalCertificationCreate
+from schemas import ExternalCertificationDisplay, ExternalCertificationCreate, CertificationFilter
 
 app = APIRouter(tags=["external_certifications"])
 
 
 @app.post("/external_certifications/", response_model=ExternalCertificationDisplay)
 def create_external_certification(certification: ExternalCertificationCreate = Form(...),
-                                  files: UploadFile = File(...),
                                   db: Session = Depends(get_db),
                                   current_user: User = Depends(get_current_user)):
     file_storage = FileStorage()
     file_metadata = file_storage.save_file(
-        files, db, type="External Certificate"
+        certification.files, db, type="External Certificate"
     )
 
-    new_certification = ExternalCertification(**certification.dict(),
+    new_certification = ExternalCertification(**certification.dict(exclude={'files'}),
                                               uploaded_by_id=current_user.id,
                                               file_id=file_metadata.FileID)
     db.add(new_certification)
@@ -37,6 +36,21 @@ def read_external_certifications(db: Session = Depends(get_db)):
     certifications = db.query(ExternalCertification).all()
     return certifications
 
+
+@app.get("/external_certifications/filter/", response_model=List[ExternalCertificationDisplay])
+def get_certifications_by_filters(filters: CertificationFilter = Depends(), db: Session = Depends(get_db)):
+    query = db.query(ExternalCertification)
+
+    if filters.category:
+        query = query.filter(ExternalCertification.category == filters.category)
+    if filters.uploaded_by_id:
+        query = query.filter(ExternalCertification.uploaded_by_id == filters.uploaded_by_id)
+
+    certifications = query.all()
+    if not certifications:
+        raise HTTPException(status_code=404, detail="No certifications found matching the criteria")
+
+    return certifications
 
 @app.put("/external_certifications/{certification_id}", response_model=ExternalCertificationDisplay)
 def update_external_certification(certification_id: int, certification_data: ExternalCertificationCreate,
@@ -58,3 +72,4 @@ def delete_external_certification(certification_id: int, db: Session = Depends(g
     db.delete(certification)
     db.commit()
     return Response(status_code=204)
+
