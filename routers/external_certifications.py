@@ -18,9 +18,8 @@ app = APIRouter(tags=["external_certifications"])
 def create_external_certification(certification: ExternalCertificationCreate,
                                   db: Session = Depends(get_db),
                                   current_user: User = Depends(get_current_user)):
-    new_certification = ExternalCertification(**certification.dict(exclude={'files'}),
-                                              uploaded_by_id=current_user.id,
-                                              file_id=certification.file_id)
+    new_certification = ExternalCertification(**certification.dict(),
+                                              uploaded_by_id=current_user.id)
     db.add(new_certification)
     db.commit()
     db.refresh(new_certification)
