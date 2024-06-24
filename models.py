@@ -77,6 +77,7 @@ class Feedback(Base):
     submitted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
     description = Column(String)
+    created_at = Column(DateTime, default=func.now())
     rating = Column(Integer)
     # Relationships
     user = relationship("User", back_populates="feedbacks", foreign_keys=[user_id])

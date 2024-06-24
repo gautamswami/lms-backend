@@ -427,7 +427,9 @@ class FeedbackDisplay(BaseModel_):
     course_id: Optional[int]
     description: str
     rating: int
+    created_at: datetime
     submitter: UserBase
+    course: CourseSortDisplay
 
     class Config:
         from_attributes = True
