@@ -70,6 +70,20 @@ class Role(Base):
     users = relationship("User", back_populates="role")
 
 
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    submitted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    description = Column(String)
+    rating = Column(Integer)
+    # Relationships
+    user = relationship("User", back_populates="feedbacks", foreign_keys=[user_id])
+    course = relationship("Course", backref="feedbacks")
+    submitter = relationship("User", foreign_keys=[submitted_by], back_populates="feedback_given")
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -97,7 +111,9 @@ class User(Base):
         "Course", secondary=association_table, back_populates="users_assigned"
     )
     enrollments = relationship("Enrollment", back_populates="user")
-    feedbacks = relationship("Feedback", back_populates="user")
+    feedbacks = relationship("Feedback", back_populates="user", foreign_keys=[Feedback.user_id])
+    feedback_given = relationship("Feedback", back_populates="submitter", foreign_keys=[Feedback.submitted_by])
+
     # learning_paths = relationship(
     #     "LearningPath", secondary=user_learning_paths, back_populates="users"
     # )
@@ -223,18 +239,6 @@ class LearningPath(Base):
     @property
     def expected_time_to_complete(self):
         return sum(course.expected_time_to_complete for course in self.courses)
-
-
-class Feedback(Base):
-    __tablename__ = "feedbacks"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    course_id = Column(Integer, ForeignKey("courses.id"))
-    description = Column(String)
-    rating = Column(Integer)
-    # Relationships
-    user = relationship("User", back_populates="feedbacks")
-    course = relationship("Course", backref="feedbacks")
 
 
 class Course(Base):
