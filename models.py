@@ -81,7 +81,9 @@ class Feedback(Base):
     # Relationships
     user = relationship("User", back_populates="feedbacks", foreign_keys=[user_id])
     course = relationship("Course", backref="feedbacks")
-    submitter = relationship("User", foreign_keys=[submitted_by], back_populates="feedback_given")
+    submitter = relationship(
+        "User", foreign_keys=[submitted_by], back_populates="feedback_given"
+    )
 
 
 class User(Base):
@@ -111,8 +113,12 @@ class User(Base):
         "Course", secondary=association_table, back_populates="users_assigned"
     )
     enrollments = relationship("Enrollment", back_populates="user")
-    feedbacks = relationship("Feedback", back_populates="user", foreign_keys=[Feedback.user_id])
-    feedback_given = relationship("Feedback", back_populates="submitter", foreign_keys=[Feedback.submitted_by])
+    feedbacks = relationship(
+        "Feedback", back_populates="user", foreign_keys=[Feedback.user_id]
+    )
+    feedback_given = relationship(
+        "Feedback", back_populates="submitter", foreign_keys=[Feedback.submitted_by]
+    )
 
     # learning_paths = relationship(
     #     "LearningPath", secondary=user_learning_paths, back_populates="users"
@@ -126,7 +132,12 @@ class User(Base):
         back_populates="counselor",
         overlaps="counselees",
     )
-    external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
+    # external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
+    external_certifications = relationship(
+        "ExternalCertification",
+        back_populates="uploaded_by",
+        foreign_keys="[ExternalCertification.uploaded_by_id]",
+    )
 
     __table_args__ = (Index("idx_user_email", "email"),)
 
@@ -316,13 +327,12 @@ class Course(Base):
     )
 
 
-
 class ExternalCertification(Base):
     __tablename__ = "external_certifications"
     id = Column(Integer, primary_key=True, autoincrement=True)
     course_name = Column(String, nullable=False)
     category = Column(String, nullable=False)
-    status = Column(String,default='pending')
+    status = Column(String, default="pending")
     date_of_completion = Column(Date, nullable=False)
     hours = Column(Integer, nullable=False)
     file_id = Column(String, ForeignKey("files.FileID"), nullable=False)
@@ -332,6 +342,10 @@ class ExternalCertification(Base):
     approved_by = Column(Integer, ForeignKey("users.id"))
     # Relationships
     file = relationship("File")
-    uploaded_by = relationship("User", back_populates="external_certifications")
-
-
+    # uploaded_by = relationship("User", back_populates="external_certifications")
+    uploaded_by = relationship(
+        "User",
+        foreign_keys=[uploaded_by_id],
+        primaryjoin="User.id==ExternalCertification.uploaded_by_id",
+        back_populates="external_certifications",
+    )
