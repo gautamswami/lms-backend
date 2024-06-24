@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
 
 from pydantic import BaseModel, EmailStr, Field
+from fastapi import UploadFile
 
 
 class BaseModel_(BaseModel):
@@ -84,9 +85,13 @@ class ContentBase(BaseModel_):
     chapter_id: int
 
 
-class ContentCreate(BaseModel):
+class ContentCreate(BaseModel_):
+    titles_json: str = Field(..., description="JSON-encoded list of titles")
+
+
+class ContentFile(BaseModel_):
     title: str = Field(..., description="The title of the content")
-    file_index: int
+    file: UploadFile = Field(..., description="The file to upload")
 
 
 # class ContentCreate(ContentBase):
@@ -116,7 +121,7 @@ class QuestionDisplay(QuestionBase):
     id: str
 
 
-class QuestionGetRequest(BaseModel):
+class QuestionGetRequest(BaseModel_):
     course_id: List[int] = []
     chapter_id: List[int] = []
 
@@ -141,7 +146,6 @@ class ChapterCreate(BaseModel_):
     title: str
     description: str
     quizzes: List[QuestionCreate] = Field(default_factory=list)
-    contents: List[ContentCreate] = Field(default_factory=list)
 
 
 class ChapterDisplay(ChapterCreate):
@@ -409,14 +413,15 @@ class DashInput(BaseModel_):
 
 # ======================================FEEDBACK======================================
 
-class FeedbackCreate(BaseModel):
+
+class FeedbackCreate(BaseModel_):
     user_id: Optional[int] = None
     course_id: Optional[int] = None
     description: str
     rating: int
 
 
-class FeedbackDisplay(BaseModel):
+class FeedbackDisplay(BaseModel_):
     id: int
     user_id: Optional[int]
     course_id: Optional[int]
@@ -428,15 +433,19 @@ class FeedbackDisplay(BaseModel):
         from_attributes = True
 
 
-class CertificationFilter(BaseModel):
-    category: Optional[str] = Field(None, description="Filter by the category of the certification")
-    uploaded_by_id: Optional[int] = Field(None, description="Filter by the user ID who uploaded the certification")
+class CertificationFilter(BaseModel_):
+    category: Optional[str] = Field(
+        None, description="Filter by the category of the certification"
+    )
+    uploaded_by_id: Optional[int] = Field(
+        None, description="Filter by the user ID who uploaded the certification"
+    )
 
 
 # ======================================ExternalCertification======================================
 
 
-class ExternalCertificationCreate(BaseModel):
+class ExternalCertificationCreate(BaseModel_):
     course_name: str
     category: str
     date_of_completion: date
@@ -445,7 +454,7 @@ class ExternalCertificationCreate(BaseModel):
     file_id: str
 
 
-class ExternalCertificationUpdate(BaseModel):
+class ExternalCertificationUpdate(BaseModel_):
     course_name: Optional[str]
     category: Optional[str]
     date_of_completion: Optional[date]
@@ -454,7 +463,7 @@ class ExternalCertificationUpdate(BaseModel):
     file_id: Optional[str]
 
 
-class ExternalCertificationDisplay(BaseModel):
+class ExternalCertificationDisplay(BaseModel_):
     id: int
     course_name: str
     category: str
