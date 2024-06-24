@@ -1,10 +1,11 @@
+import uuid
+from datetime import datetime, timedelta
+
+from passlib.context import CryptContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
-import os
-import uuid
+
 from models import *
-from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -185,8 +186,8 @@ def create_sample_data():
             tags="advanced,ml",
         )
         course2 = Course(
-            title="course2",
-            description="Learn Python basics",
+            title="The Complete Histudy 2024: From Zero to Expert!",
+            description="## What you'll learn\n\nAre you new to PHP or need a refresher? Then this course will help you get all the fundamentals of Procedural PHP, Object Oriented PHP, MYSQLi and ending the course by building a CMS system similar to WordPress, Joomla or Drupal. Knowing PHP has allowed me to make enough money to stay home and make courses like this one for students all over the world.\n\n### Course Features\n\n#### Section 1\n- Become an advanced, confident, and modern JavaScript developer from scratch.\n- Have an intermediate skill level of Python programming.\n- Have a portfolio of various data analysis projects.\n- Use the numpy library to create and manipulate arrays.\n\n#### Section 2\n- Use the Jupyter Notebook Environment. JavaScript developer from scratch.\n- Use the pandas module with Python to create and structure data.\n- Have a portfolio of various data analysis projects.\n- Create data visualizations using matplotlib and seaborn.\n\nLorem ipsum dolor sit amet consectetur, adipisicing elit. Omnis, aliquam voluptas laudantium incidunt architecto nam excepturi provident rem laborum repellendus placeat neque aut doloremque ut ullam, veritatis nesciunt iusto officia alias, non est vitae. Eius repudiandae optio quam alias aperiam nemo nam tempora, dignissimos dicta excepturi ea quo ipsum omnis maiores perferendis commodi voluptatum facere vel vero. Praesentium quisquam iure veritatis, perferendis adipisci sequi blanditiis quidem porro eligendi fugiat facilis inventore amet delectus expedita deserunt ut molestiae modi laudantium, quia tenetur animi natus ea. Molestiae molestias ducimus pariatur et consectetur. Error vero, eum soluta delectus necessitatibus eligendi numquam hic at?",
             category="Programming",
             created_by=instructor.id,
             service_line_id=service_lines[0].name,
@@ -361,12 +362,16 @@ def create_sample_data():
             course_id=course1.id,
             description="Great course!",
             rating=5,
+        submitted_by=employee.id
+
         )
         feedback2 = Feedback(
             user_id=employee.id,
             course_id=course2.id,
             description="Very informative.",
             rating=4,
+            submitted_by=employee.id
+
         )
 
         db.add_all([feedback1, feedback2])
