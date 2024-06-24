@@ -1,22 +1,17 @@
 import smtplib
 from email.message import EmailMessage
 
-from fastapi import APIRouter, BackgroundTasks, Header
-from fastapi import Depends, HTTPException, status
-from jose import JWTError
+import pyotp
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import BackgroundTasks
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 import auth
 import crud
-from auth import oauth2_scheme
-from config import EMAIL_ADDRESS, EMAIL_PASSWORD
 from dependencies import get_db
-from schemas import *
 from models import *
-from typing import Annotated, Union
-import pyotp
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status, Cookie
-from fastapi.responses import JSONResponse
+from schemas import *
 
 app = APIRouter(prefix="/um", tags=["User Management"])
 
@@ -80,7 +75,7 @@ Contact us: [Support Email/Phone Number]"""
 
 @app.post("/users/forgot-password/")
 def forgot_password(
-    email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+        email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """
 
@@ -134,9 +129,9 @@ def reset_password(reset: ResetPassword, db: Session = Depends(get_db)):
 
 @app.post("/users/", response_model=UserDisplay, status_code=status.HTTP_201_CREATED)
 def create_user(
-    user: UserCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user: UserCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.get_user_by_email(db, email=user.email)
@@ -151,8 +146,8 @@ def create_user(
 
 @app.get("/users/", response_model=List[UserDisplay], status_code=status.HTTP_201_CREATED)
 def get_all_user(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     users = db.query(User).all()
     return users
@@ -160,9 +155,9 @@ def get_all_user(
 
 @app.get("/users/{user_id}", response_model=UserDisplay)
 def read_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         if current_user.role_name not in ["Admin", "Super Admin"]:
@@ -180,10 +175,10 @@ def read_user(
 # noinspection PyTypeChecker
 @app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
-    user_id: int,
-    user: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        user: UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         print(1)
@@ -202,9 +197,9 @@ def update_user(
 
 @app.delete("/users/{user_id}", response_model=UserDisplay)
 def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.delete_user(db, user_id=user_id)
@@ -220,9 +215,8 @@ def delete_user(
 # noinspection PyTypeChecker
 @app.get("/get_all", response_model=UM_send_all)
 def get_all(
-    db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
 ):
-
     instructors = crud.get_users_by_filter(
         db=db,
         filters={
@@ -282,9 +276,13 @@ def get_all(
 
 
 @app.get("/counselor/{counselor_id}/team_members", response_model=List[UserTeamView])
-def get_team_members(counselor_id: int, db: Session = Depends(get_db)):
+def get_team_members(counselor_id: int, db: Session = Depends(get_db), current_user: User = Depends(
+    auth.get_current_user)):
     # Fetch the counselor to validate existence and role
-    counselor = db.query(User).filter(User.id == counselor_id, User.role_name == "Instructor").first()
+    if counselor_id == 0:
+        counselor = current_user
+    else:
+        counselor = db.query(User).filter(User.id == counselor_id, User.role_name == "Instructor").first()
     if not counselor:
         raise HTTPException(status_code=404, detail="Counselor not found")
 
@@ -299,7 +297,8 @@ def get_team_members(counselor_id: int, db: Session = Depends(get_db)):
         pending_trainings = [e for e in member.enrollments if e.status == "Enrolled"]
 
         mandatory_overdue = sum(
-            1 for e in member.enrollments if e.course.category == "Mandatory" and e.status != "Completed" and e.due_date < datetime.now())
+            1 for e in member.enrollments if
+            e.course.category == "Mandatory" and e.status != "Completed" and e.due_date < datetime.now())
 
         completed_hours = sum(e.course.expected_time_to_complete for e in completed_trainings)
         technical_hours = sum(
