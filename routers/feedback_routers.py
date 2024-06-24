@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from dependencies import get_db
-from models import Feedback, User
+from models import Feedback, User, Course
 from schemas import FeedbackDisplay, FeedbackCreate
 
 app = APIRouter(tags=["feeedback"])
@@ -59,7 +59,7 @@ def get_feedbacks(user_id: Optional[int] = None, course_id: Optional[int] = None
 @app.get("/feedbacks/all_courses_of_instructor/", response_model=List[FeedbackDisplay])
 def get_feedbacks(db: Session = Depends(get_db),
                   current_user: User = Depends(get_current_user)):
-    query = db.query(Feedback).filter(Feedback.course.created_by == current_user.id)
+    query = db.query(Feedback).join(Course).filter(Course.created_by == current_user.id)
     feedbacks = query.all()
     if not feedbacks:
         raise HTTPException(status_code=404, detail="No feedbacks found.")
