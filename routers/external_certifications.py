@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -67,4 +68,47 @@ def delete_external_certification(certification_id: int, db: Session = Depends(g
     db.delete(certification)
     db.commit()
     return Response(status_code=204)
+
+
+
+@app.patch("/external_certifications/{certification_id}/approve")
+def approve_external_certifications(
+    certification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role_name in ["Employee"]:
+        raise HTTPException(status_code=403, detail="Only admins can approve courses")
+    course = db.query(ExternalCertification).filter(ExternalCertification.id == certification_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="external_certifications not found")
+    if course.status == "approve":
+        raise HTTPException(status_code=404, detail="already approved")
+
+    course.status = "approve"
+    course.approved_by = current_user.id
+    course.approved_date = datetime.now()
+    db.commit()
+    return {"message": "external_certifications approved successfully"}
+
+
+@app.patch("/external_certifications/{certification_id}/reject")
+def reject_external_certifications(
+    certification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role_name in ["Employee"]:
+        raise HTTPException(status_code=403, detail="Only admins can approve courses")
+    course = db.query(ExternalCertification).filter(ExternalCertification.id == certification_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="external_certifications not found")
+    if course.status == "approve":
+        raise HTTPException(status_code=404, detail="already approved")
+
+    course.status = "reject"
+    course.approved_by = current_user.id
+    course.approved_date = datetime.now()
+    db.commit()
+    return {"message": "external_certifications reject successfully"}
 

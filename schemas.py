@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from datetime import date
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
-from datetime import date
 
-from fastapi import UploadFile, File
-from pydantic import BaseModel, EmailStr, Field, validator, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 class BaseModel_(BaseModel):
@@ -464,6 +463,7 @@ class ExternalCertificationDisplay(BaseModel):
     file_id: str
     certificate_provider: str
     uploaded_by_id: int
+    status: str
 
     class Config:
         from_attributes = True

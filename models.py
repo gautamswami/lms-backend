@@ -322,12 +322,14 @@ class ExternalCertification(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     course_name = Column(String, nullable=False)
     category = Column(String, nullable=False)
+    status = Column(String,default='pending')
     date_of_completion = Column(Date, nullable=False)
     hours = Column(Integer, nullable=False)
     file_id = Column(String, ForeignKey("files.FileID"), nullable=False)
     certificate_provider = Column(String, nullable=False)
     uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
+    approved_date = Column(DateTime, default=None)  # To track when a course was created
+    approved_by = Column(Integer, ForeignKey("users.id"))
     # Relationships
     file = relationship("File")
     uploaded_by = relationship("User", back_populates="external_certifications")
