@@ -416,13 +416,6 @@ class FeedbackCreate(BaseModel):
     description: str
     rating: int
 
-    @field_validator('user_id', mode='before')
-    def check_exclusivity(cls, v, values, **kwargs):
-        if ('course_id' in values and v is not None and values['course_id'] is not None) or (
-                v is None and 'course_id' not in values):
-            raise ValueError("Either user_id or course_id must be provided, not both or none.")
-        return v
-
 
 class FeedbackDisplay(BaseModel):
     id: int
