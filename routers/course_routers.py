@@ -21,7 +21,9 @@ from schemas import (
     CourseUpdate,
     ContentCreate,
     QuestionCreate,
+    ContentFile,
 )
+import json
 
 app = APIRouter(tags=["course"])
 
@@ -31,10 +33,7 @@ app = APIRouter(tags=["course"])
 
 @app.post("/courses", response_model=CourseFullDisplay)
 async def create_course(
-    course_data: CourseCreate = Form(
-        ...
-    ),  # Assume JSON data is submitted as form field
-    files: List[UploadFile] = File(...),
+    course_data: CourseCreate,  # Assume JSON data is submitted
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -55,8 +54,8 @@ async def create_course(
 
     for chapter_data in course_data.chapters:
         new_chapter = Chapter(
-            **chapter_data.dict(exclude={"quizzes", "contents"}),
-            course_id=new_course.id
+            **chapter_data.dict(exclude={"quizzes"}),  # Exclude contents entirely
+            course_id=new_course.id,
         )
         db.add(new_chapter)
         db.commit()
@@ -66,28 +65,6 @@ async def create_course(
             new_question = Questions(chapter_id=new_chapter.id, **quiz_data.dict())
             db.add(new_question)
             db.commit()
-
-        for content_data in chapter_data.contents:
-            content_file = files[
-                content_data.file_index
-            ]  # Access the file using the index
-            file_storage = FileStorage()
-            try:
-                file_metadata = file_storage.save_file(
-                    content_file, db, type="Course content"
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-
-            new_content = Content(
-                chapter_id=new_chapter.id,
-                title=content_data.title,
-                content_type=content_file.content_type,
-                file_id=file_metadata.FileID,
-            )
-            db.add(new_content)
-            db.commit()
-            db.refresh(new_content)
 
     course = db.query(Course).filter(Course.id == new_course.id).first()
     return course
@@ -239,34 +216,44 @@ def create_chapter(
 # ------------------- Content Operations -------------------
 
 
-# Upload content to a specific chapter
-@app.post("/chapters/{chapter_id}/content/", response_model=ContentDisplay)
+@app.post("/chapters/{chapter_id}/content/", response_model=List[ContentDisplay])
 async def create_content(
-    content_data: ContentCreate,
-    chapter_id: int = Path(..., description="The ID of the chapter"),
+    chapter_id: int,
+    titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
+    files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
-    file_storage = FileStorage()
-
-    # Save the file using the storage class
     try:
-        file_metadata = file_storage.save_file(
-            content_data.file, db, type="Course content"
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        titles = json.loads(titles_json)  # Deserialize JSON string into a Python list
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format for titles.")
 
-    # Create new content record linked to the specified chapter
-    new_content = Content(
-        chapter_id=chapter_id,
-        title=content_data.title,
-        content_type=content_data.file.content_type,
-        file_id=file_metadata.FileID,
-    )
-    db.add(new_content)
-    db.commit()
-    db.refresh(new_content)
-    return new_content
+    if len(files) != len(titles):
+        raise HTTPException(
+            status_code=400, detail="The number of titles and files must match."
+        )
+
+    responses = []
+    for idx, file in enumerate(files):
+        file_storage = FileStorage()
+
+        try:
+            file_metadata = file_storage.save_file(file, db, type="Course content")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        new_content = Content(
+            chapter_id=chapter_id,
+            title=titles[idx],  # Use the corresponding title from the deserialized list
+            content_type=file.content_type,
+            file_id=file_metadata.FileID,
+        )
+        db.add(new_content)
+        db.commit()
+        db.refresh(new_content)
+        responses.append(new_content)
+
+    return responses
 
 
 # ------------------- Enrollment Operations -------------------
