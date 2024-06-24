@@ -8,23 +8,19 @@ from auth import get_current_user
 from dependencies import get_db
 from file_storage import FileStorage
 from models import ExternalCertification, User
-from schemas import ExternalCertificationDisplay, ExternalCertificationCreate, CertificationFilter
+from schemas import ExternalCertificationDisplay, ExternalCertificationCreate, CertificationFilter, \
+    ExternalCertificationUpdate
 
 app = APIRouter(tags=["external_certifications"])
 
 
 @app.post("/external_certifications/", response_model=ExternalCertificationDisplay)
-def create_external_certification(certification: ExternalCertificationCreate = Form(...),
+def create_external_certification(certification: ExternalCertificationCreate,
                                   db: Session = Depends(get_db),
                                   current_user: User = Depends(get_current_user)):
-    file_storage = FileStorage()
-    file_metadata = file_storage.save_file(
-        certification.files, db, type="External Certificate"
-    )
-
     new_certification = ExternalCertification(**certification.dict(exclude={'files'}),
                                               uploaded_by_id=current_user.id,
-                                              file_id=file_metadata.FileID)
+                                              file_id=certification.file_id)
     db.add(new_certification)
     db.commit()
     db.refresh(new_certification)
@@ -53,7 +49,7 @@ def get_certifications_by_filters(filters: CertificationFilter = Depends(), db: 
     return certifications
 
 @app.put("/external_certifications/{certification_id}", response_model=ExternalCertificationDisplay)
-def update_external_certification(certification_id: int, certification_data: ExternalCertificationCreate,
+def update_external_certification(certification_id: int, certification_data: ExternalCertificationUpdate,
                                   db: Session = Depends(get_db)):
     certification = db.query(ExternalCertification).filter(ExternalCertification.id == certification_id).first()
     if certification is None:

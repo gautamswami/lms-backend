@@ -450,7 +450,16 @@ class ExternalCertificationCreate(BaseModel):
     date_of_completion: date
     hours: int
     certificate_provider: str
-    files: UploadFile = File(...)
+    file_id: str
+
+
+class ExternalCertificationUpdate(BaseModel):
+    course_name: Optional[str]
+    category: Optional[str]
+    date_of_completion: Optional[date]
+    hours: Optional[int]
+    certificate_provider: Optional[str]
+    file_id: Optional[str]
 
 
 class ExternalCertificationDisplay(BaseModel):
