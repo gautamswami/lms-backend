@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property, backref
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.sql import and_
 
 Base = declarative_base()
 
@@ -136,15 +137,15 @@ class User(Base):
     # external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
     external_certifications = relationship(
         "ExternalCertification",
-        foreign_keys='[ExternalCertification.uploaded_by_id]',
+        foreign_keys="[ExternalCertification.uploaded_by_id]",
         back_populates="uploaded_by",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
     approved_certifications = relationship(
         "ExternalCertification",
-        foreign_keys='[ExternalCertification.approved_by]',
+        foreign_keys="[ExternalCertification.approved_by]",
         back_populates="approver",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (Index("idx_user_email", "email"),)
@@ -202,6 +203,9 @@ class Content(Base):
     file = relationship("File")  # Direct relationship to the File table
 
 
+from database import SessionLocal
+
+
 class Enrollment(Base):
     __tablename__ = "enrollments"
     id = Column(Integer, primary_key=True)
@@ -211,18 +215,97 @@ class Enrollment(Base):
     year = Column(Integer)  # The year of enrollment, can be set based on enroll_date
     due_date = Column(Date)
     status = Column(String, default="Enrolled")
-    completion_percentage = Column(
-        Numeric, default=0
-    )  # Represents overall course completion percentage
+    # completion_percentage = Column(
+    #     Numeric, default=0
+    # )  # Represents overall course completion percentage
     # Relationships
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
     progress = relationship("Progress", uselist=False, back_populates="enrollment")
+
     @property
-    def calculate_progress_percentage(self):
-        course_id = self.course_id
-        total_content = sum([len(c.contents) for c in self.course.chapters])
-        return total_content
+    def calculated_completion_percentage(self):
+        session = SessionLocal()  # Assuming Session is imported and configured properly
+        return self.calculate_progress_percentage(self.id, session)
+
+    @staticmethod
+    def calculate_progress_percentage(enrollment_id, session):
+        """
+        Calculates the progress percentage for a given enrollment based on the number of contents completed.
+        Handles cases where there might be no content, chapters, or progress records.
+
+        Args:
+        enrollment_id (int): The ID of the enrollment.
+        session (Session): The SQLAlchemy session for database interaction.
+
+        Returns:
+        float: The progress percentage of the enrollment, or 0.0 if insufficient data exists.
+        """
+        # Retrieve the enrollment and associated course details
+        enrollment = session.query(Enrollment).filter_by(id=enrollment_id).one_or_none()
+        if not enrollment:
+            # print("Enrollment not found.")
+            return 0.0  # Handle case where enrollment doesn't exist
+
+        course_id = enrollment.course_id
+        print("course_id", course_id)
+
+        # Check for the existence of chapters before counting content
+        chapters_exist = session.query(Chapter).filter_by(course_id=course_id).first()
+        if not chapters_exist:
+            # print("No chapters available for this course.")
+            return 0.0  # Return 0% if no chapters are available
+
+        # Get the total number of contents in the course
+        total_contents = (
+            session.query(func.count(Content.id))
+            .join(Chapter)
+            .filter(Chapter.course_id == course_id)
+            .scalar()
+        )
+        print("total_contents", total_contents)
+
+        if total_contents == 0:
+            # print("No contents available in the course.")
+            return 0.0  # Return 0% if no contents are available
+
+        # Check if there's any progress recorded
+        if not enrollment.progress or not enrollment.progress.last_content_id:
+            # print("No progress recorded for this enrollment.")
+            return 0.0  # Return 0% if no progress is found
+
+        # Count the number of contents completed
+        last_content_id = enrollment.progress.last_content_id
+        last_content = (
+            session.query(Content).filter_by(id=last_content_id).one_or_none()
+        )
+        if not last_content:
+            # print("Last content not found.")
+            return 0.0  # Handle case where last content doesn't exist
+
+        last_chapter_id = last_content.chapter_id
+        # print("last_chapter_id", last_chapter_id)
+
+        completed_contents = (
+            session.query(func.count(Content.id))
+            .join(Chapter)
+            .filter(
+                and_(
+                    Chapter.course_id == course_id,
+                    Content.id <= last_content_id,
+                    Chapter.id <= last_chapter_id,
+                )
+            )
+            .scalar()
+        )
+        # print("completed_contents", completed_contents)
+
+        # Calculate progress percentage
+        progress_percentage = (completed_contents / total_contents) * 100
+        # print("progress_percentage", progress_percentage)
+        return progress_percentage
+
+
 class Progress(Base):
     __tablename__ = "progress"
     id = Column(Integer, primary_key=True)
@@ -339,6 +422,7 @@ class Course(Base):
         .scalar_subquery()
     )
 
+
 class ExternalCertification(Base):
     __tablename__ = "external_certifications"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -356,17 +440,14 @@ class ExternalCertification(Base):
     file = relationship("File")
     # uploaded_by = relationship("User", back_populates="external_certifications")
     uploaded_by = relationship(
-        "User",
-        foreign_keys=[uploaded_by_id],
-        back_populates="external_certifications"
+        "User", foreign_keys=[uploaded_by_id], back_populates="external_certifications"
     )
 
     # Define the relationship with `User` for the approver
     approver = relationship(
-        "User",
-        foreign_keys=[approved_by],
-        back_populates="approved_certifications"
+        "User", foreign_keys=[approved_by], back_populates="approved_certifications"
     )
+
     @property
     def sample_property(self):
         return len(self.uploaded_by.uploaded_certifications)
