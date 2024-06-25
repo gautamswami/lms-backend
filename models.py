@@ -136,8 +136,15 @@ class User(Base):
     # external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
     external_certifications = relationship(
         "ExternalCertification",
+        foreign_keys='[ExternalCertification.uploaded_by_id]',
         back_populates="uploaded_by",
-        foreign_keys="[ExternalCertification.uploaded_by_id]",
+        cascade="all, delete-orphan"
+    )
+    approved_certifications = relationship(
+        "ExternalCertification",
+        foreign_keys='[ExternalCertification.approved_by]',
+        back_populates="approver",
+        cascade="all, delete-orphan"
     )
 
     __table_args__ = (Index("idx_user_email", "email"),)
@@ -211,8 +218,11 @@ class Enrollment(Base):
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
     progress = relationship("Progress", uselist=False, back_populates="enrollment")
-
-
+    @property
+    def calculate_progress_percentage(self):
+        course_id = self.course_id
+        total_content = sum([len(c.contents) for c in self.course.chapters])
+        return total_content
 class Progress(Base):
     __tablename__ = "progress"
     id = Column(Integer, primary_key=True)
@@ -301,32 +311,33 @@ class Course(Base):
     )
 
     # Calculated fields
-
     chapters_count = column_property(
-        select(func.count(Chapter.id)).where(Chapter.course_id == id).scalar_subquery()
+        select(func.count(Chapter.id))
+        .where(Chapter.course_id == id)
+        .correlate_except(Chapter)
+        .scalar_subquery()
     )
 
     enrolled_students_count = column_property(
         select(func.count(Enrollment.id))
         .where(Enrollment.course_id == id)
-        .scalar_subquery()
-    )
-    feedback_count = column_property(
-        select(func.count(Feedback.id))
-        .where(Feedback.course_id == id)
-        .scalar_subquery()
-    )
-    completed_students_count = column_property(
-        select(func.count(Enrollment.id))
-        .where((Enrollment.course_id == id) & (Enrollment.status == "Completed"))
-        .scalar_subquery()
-    )
-    average_rating = column_property(
-        select(func.avg(Feedback.rating))
-        .where(Feedback.course_id == id)
+        .correlate_except(Enrollment)
         .scalar_subquery()
     )
 
+    completed_students_count = column_property(
+        select(func.count(Enrollment.id))
+        .where((Enrollment.course_id == id) & (Enrollment.status == "Completed"))
+        .correlate_except(Enrollment)
+        .scalar_subquery()
+    )
+
+    average_rating = column_property(
+        select(func.avg(Feedback.rating))
+        .where(Feedback.course_id == id)
+        .correlate_except(Feedback)
+        .scalar_subquery()
+    )
 
 class ExternalCertification(Base):
     __tablename__ = "external_certifications"
@@ -347,6 +358,15 @@ class ExternalCertification(Base):
     uploaded_by = relationship(
         "User",
         foreign_keys=[uploaded_by_id],
-        primaryjoin="User.id==ExternalCertification.uploaded_by_id",
-        back_populates="external_certifications",
+        back_populates="external_certifications"
     )
+
+    # Define the relationship with `User` for the approver
+    approver = relationship(
+        "User",
+        foreign_keys=[approved_by],
+        back_populates="approved_certifications"
+    )
+    @property
+    def sample_property(self):
+        return len(self.uploaded_by.uploaded_certifications)

@@ -20,6 +20,11 @@ async def enroll_self(request: EnrollmentRequest,
                       current_user: User = Depends(get_current_user)):
     if len(request.user_ids) != 1 or request.user_ids[0] != current_user.id:
         raise HTTPException(status_code=403, detail="You can only enroll yourself.")
+    course = db.query(Course).filter(Course.id == request.user_ids[0]).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if course.status != 'approve':
+        raise HTTPException(status_code=404, detail="Course is not approved yet")
 
     return enroll_users(request.course_id, request.user_ids, db)
 
@@ -34,6 +39,11 @@ async def enroll_by_instructor(request: EnrollmentRequest, db: Session = Depends
     counselees_ids = {user.id for user in current_user.counselees}
     if not set(request.user_ids).issubset(counselees_ids):
         raise HTTPException(status_code=403, detail="You can only enroll your own team members.")
+    course = db.query(Course).filter(Course.id == request.user_ids[0]).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if course.status != 'approve':
+        raise HTTPException(status_code=404, detail="Course is not approved yet")
 
     return enroll_users(request.course_id, request.user_ids, db)
 
@@ -49,6 +59,11 @@ async def enroll_by_admin(request: EnrollmentRequest, db: Session = Depends(get_
     service_line_user_ids = {user.id for user in service_line_users}
     if not set(request.user_ids).issubset(service_line_user_ids):
         raise HTTPException(status_code=403, detail="You can only enroll users within your service line.")
+    course = db.query(Course).filter(Course.id == request.user_ids[0]).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if course.status != 'approve':
+        raise HTTPException(status_code=404, detail="Course is not approved yet")
 
     return enroll_users(request.course_id, request.user_ids, db)
 
