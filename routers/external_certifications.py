@@ -29,10 +29,30 @@ def create_external_certification(certification: ExternalCertificationCreate,
 
 
 @app.get("/external_certifications/", response_model=List[ExternalCertificationDisplay])
-def read_external_certifications(db: Session = Depends(get_db)):
-    certifications = db.query(ExternalCertification).order_by(desc(ExternalCertification.id)).all()
-    return certifications
+def read_external_certifications(db: Session = Depends(get_db),
+                                 current_user: User = Depends(get_current_user),
+                                 ):
+    if current_user.role_name == "Super Admin":
+        certifications = db.query(ExternalCertification).order_by(desc(ExternalCertification.id)).all()
+    elif current_user.role_name == "Admin":
+        certifications = (db.query(ExternalCertification)
+                          .join(User, ExternalCertification.uploaded_by_id == User.id)
+                          .filter(User.service_line_id == current_user.service_line_id)
+                          .order_by(desc(ExternalCertification.id))
+                          .all())
+    elif current_user.role_name == "Instructor":
+        certifications = (db.query(ExternalCertification)
+                          .join(User, ExternalCertification.uploaded_by_id == User.id)
+                          .filter(User.counselor_id == current_user.id)
+                          .order_by(desc(ExternalCertification.id))
+                          .all())
+    else:
+        certifications = (db.query(ExternalCertification)
+                          .filter(ExternalCertification.uploaded_by_id == current_user.id)
+                          .order_by(desc(ExternalCertification.id))
+                          .all())
 
+    return certifications
 
 @app.get("/external_certifications/filter/", response_model=List[ExternalCertificationDisplay])
 def get_certifications_by_filters(filters: CertificationFilter = Depends(), db: Session = Depends(get_db)):
