@@ -281,7 +281,7 @@ def create_sample_data():
         # Create enrollments
         enrollment1 = Enrollment(
             user_id=employee.id,
-            course_id=course2.id,
+            course_id=course1.id,
             enroll_date=datetime.now(),
             due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete),
             year=datetime.now().year,
@@ -362,16 +362,14 @@ def create_sample_data():
             course_id=course1.id,
             description="Great course!",
             rating=5,
-        submitted_by=employee.id
-
+            submitted_by=employee.id,
         )
         feedback2 = Feedback(
             user_id=employee.id,
             course_id=course2.id,
             description="Very informative.",
             rating=4,
-            submitted_by=employee.id
-
+            submitted_by=employee.id,
         )
 
         db.add_all([feedback1, feedback2])
