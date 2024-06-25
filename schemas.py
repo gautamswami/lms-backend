@@ -147,10 +147,8 @@ class ChapterBase(BaseModel_):
     course_id: int
 
 
-class ChapterCreate(BaseModel_):
-    title: str
-    description: str
-    quizzes: List[QuestionCreate] = Field(default_factory=list)
+class ChapterCreate(ChapterBase):
+    pass
 
 
 class ChapterDisplay(ChapterCreate):
