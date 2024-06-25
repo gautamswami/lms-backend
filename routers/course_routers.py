@@ -204,8 +204,8 @@ def create_chapter(
     current_user: User = Depends(get_current_user),
 ):
     course = db.query(Course).filter(Course.id == chapter.course_id).first()
-    if not course or course.created_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Operation not permitted")
+    # if not course or course.created_by != current_user.id:
+    # raise HTTPException(status_code=403, detail="Operation not permitted")
     new_chapter = Chapter(**chapter.dict())
     db.add(new_chapter)
     db.commit()
