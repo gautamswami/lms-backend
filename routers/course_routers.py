@@ -220,17 +220,24 @@ def create_chapter(
 async def create_content(
     chapter_id: int,
     titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
+    expected_time_to_complete: str = Form(...),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
     try:
         titles = json.loads(titles_json)  # Deserialize JSON string into a Python list
+        expected_time_to_complete = json.loads(expected_time_to_complete)
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format for titles.")
 
     if len(files) != len(titles):
         raise HTTPException(
             status_code=400, detail="The number of titles and files must match."
+        )
+    if len(files) != len(expected_time_to_complete):
+        raise HTTPException(
+            status_code=400,
+            detail="The number of titles and expected_times must match.",
         )
 
     responses = []
@@ -245,6 +252,7 @@ async def create_content(
         new_content = Content(
             chapter_id=chapter_id,
             title=titles[idx],  # Use the corresponding title from the deserialized list
+            expected_time_to_complete=expected_time_to_complete[idx],
             content_type=file.content_type,
             file_id=file_metadata.FileID,
         )
