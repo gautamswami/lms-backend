@@ -22,7 +22,6 @@ Base.metadata.create_all(bind=engine)
 def create_sample_data():
     db = SessionLocal()
     try:
-
         service_lines = [
             "Business Risk",
             "Assurance",
@@ -91,10 +90,7 @@ def create_sample_data():
         roles = [
             Role(RoleName="Super Admin", Description="Manages the whole system"),
             Role(RoleName="Admin", Description="Manages a specific LOB or department"),
-            Role(
-                RoleName="Instructor",
-                Description="Manages own courses and can propose new ones",
-            ),
+            Role(RoleName="Instructor", Description="Manages own courses and can propose new ones"),
             Role(RoleName="Employee", Description="Can view and enroll in courses"),
         ]
         db.add_all(roles)
@@ -159,20 +155,7 @@ def create_sample_data():
             external_role_name="Pursuits",
         )
 
-        NONE = User(
-            email="admin@abc.com",
-            password=pwd_context.hash("password"),
-            first_name="Employee",
-            last_name="User",
-            role_name="Admin",
-            employee_id="EM001",
-            designation="Manager",
-            service_line_id=service_lines[0].name,
-            counselor_id=instructor.id,
-            external_role_name="Pursuits",
-        )
-
-        db.add_all([employee, NONE])
+        db.add(employee)
         db.commit()
 
         # Create courses
@@ -291,21 +274,21 @@ def create_sample_data():
             user_id=employee.id,
             course_id=course3.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=course3.expected_time_to_complete),
             year=datetime.now().year,
         )
         enrollment3 = Enrollment(
             user_id=employee.id,
             course_id=course4.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=course4.expected_time_to_complete),
             year=datetime.now().year,
         )
         enrollment4 = Enrollment(
             user_id=employee.id,
             course_id=course5.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=course5.expected_time_to_complete),
             year=datetime.now().year,
             status="Completed",
         )
@@ -313,7 +296,7 @@ def create_sample_data():
             user_id=employee.id,
             course_id=course6.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course2.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=course6.expected_time_to_complete),
             year=datetime.now().year,
         )
 
@@ -378,14 +361,45 @@ def create_sample_data():
         # Create learning paths
         learning_path1 = LearningPath(
             name="Python Developer Path",
+            service_line_id=service_lines[0].name,
         )
         learning_path1.courses.append(course1)
-        # learning_path1.users.append(employee)
-
         db.add(learning_path1)
         db.commit()
 
+        # Add learning path enrollments
+        learning_path_enrollment1 = LearningPathEnrollment(
+            user_id=employee.id,
+            learning_path_id=learning_path1.id,
+            enroll_date=datetime.now(),
+            due_date=datetime.now() + timedelta(days=30),
+            year=datetime.now().year,
+            status="Enrolled",
+        )
+        db.add(learning_path_enrollment1)
+        db.commit()
+
         print("Sample data created successfully.")
+
+        # Create certificates
+        certificate1 = Certificate(
+            user_id=employee.id,
+            course_id=course1.id,
+            # certificate_url="http://example.com/certificates/certificate1.pdf"
+        )
+        certificate2 = Certificate(
+            user_id=employee.id,
+            course_id=course2.id,
+            # certificate_url="http://example.com/certificates/certificate2.pdf"
+        )
+        certificate3 = Certificate(
+            user_id=employee.id,
+            course_id=course3.id,
+            # certificate_url="http://example.com/certificates/certificate3.pdf"
+        )
+
+        db.add_all([certificate1, certificate2, certificate3])
+        db.commit()
 
     except Exception as e:
         db.rollback()

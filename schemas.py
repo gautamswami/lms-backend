@@ -29,10 +29,10 @@ class UserTeamView(UserBase):
     hours_of_training_completed: int
     number_of_trainings_pending: int
     number_of_mandatory_trainings_overdue: int
-    hours_of_non_technical_training_completed:int
-    hours_of_technical_training_completed:int
-    hours_of_technical_training_target:int
-    hours_of_non_technical_training_target:int
+    hours_of_non_technical_training_completed: int
+    hours_of_technical_training_completed: int
+    hours_of_technical_training_target: int
+    hours_of_non_technical_training_target: int
 
     compliance_status: str
     reminder_needed: bool
@@ -481,3 +481,10 @@ class ExternalCertificationDisplay(BaseModel_):
 
     class Config:
         from_attributes = True
+
+
+class CertificateDisplay(BaseModel_):
+    id: int
+    issue_date: date
+    user: UserDisplay
+    course: CourseSortDisplay
