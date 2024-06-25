@@ -218,10 +218,10 @@ class Enrollment(Base):
     @property
     def calculated_completion_percentage(self):
         session = SessionLocal()  # Assuming Session is imported and configured properly
-        return self.calculate_progress_percentage(self.id, session)
+        return self.calculate_progress_percentage_(self.id, session)
 
     @staticmethod
-    def calculate_progress_percentage(enrollment_id, session):
+    def calculate_progress_percentage_(enrollment_id, session):
         """
         Calculates the progress percentage for a given enrollment based on the number of contents completed.
         Handles cases where there might be no content, chapters, or progress records.
