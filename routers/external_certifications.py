@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -29,7 +30,7 @@ def create_external_certification(certification: ExternalCertificationCreate,
 
 @app.get("/external_certifications/", response_model=List[ExternalCertificationDisplay])
 def read_external_certifications(db: Session = Depends(get_db)):
-    certifications = db.query(ExternalCertification).all()
+    certifications = db.query(ExternalCertification).order_by(desc(ExternalCertification.id)).all()
     return certifications
 
 
