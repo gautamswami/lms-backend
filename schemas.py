@@ -68,7 +68,7 @@ class UserCreate(UserBase):
     dp_file_id: Optional[str]
     password: str
     counselor_id: Optional[int]
-    entity: str
+    entity: str = "PIERAG"
 
 
 class UserUpdate(BaseModel_):
@@ -166,7 +166,7 @@ class CourseBase(BaseModel_):
     expected_time_to_complete: int
     difficulty_level: Optional[str]  # Added to reflect the course difficulty level
     tags: Optional[str]  # Added to handle course tagging feature
-    entity: Optional[str]  # Added to handle course tagging feature
+    entity: Optional[str] = "PIERAG"  # Added to handle course tagging feature
     service_line_id: Optional[str]
 
 
@@ -223,7 +223,7 @@ class DashStats(BaseModel_):
 class AdminCourseViewFull(CourseFullDisplay):
     # Includes everything from CourseFullDisplay and additional admin-specific fields
     created_by: UserDisplay  # Display the creator of the course
-    entity: str  # Entity information to which the course belongs
+    entity: str = "PIERAG"  # Entity information to which the course belongs
 
     class Config:
         from_attributes = True
@@ -232,7 +232,7 @@ class AdminCourseViewFull(CourseFullDisplay):
 class AdminUserView(UserDisplay):
     # Detailed view for admin to manage user details
     compliance_hours: int
-    entity: str
+    entity: str = "PIERAG"
     service_line: str
 
     class Config:
@@ -280,7 +280,7 @@ class TraineeProfileView(UserDisplay):
 class LearningPathBase(BaseModel_):
     name: str = Field(..., description="The name of the learning path")
     entity: str = Field(
-        None, description="The entity associated with the learning path"
+        "PIERAG", description="The entity associated with the learning path"
     )
     service_line_id: str = Field(
         ..., description="The service line ID associated with the learning path"
@@ -395,7 +395,7 @@ class UM_send_all(BaseModel_):
     service_lines: List[ServiceLineModel]
     external_roles: List[ExternalRoleModel]
     internal_roles: List[InternalRoleModel]
-    entities: list[str] = ["Pierian", "entity2"]
+    entities: list[str] = ["PIERAG", "All", "BTPIE"]
 
     class Config:
         from_attributes = True

@@ -362,6 +362,7 @@ def create_sample_data():
         learning_path1 = LearningPath(
             name="Python Developer Path",
             service_line_id=service_lines[0].name,
+            entity="Pierian"
         )
         learning_path1.courses.append(course1)
         db.add(learning_path1)
