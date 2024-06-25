@@ -379,27 +379,32 @@ def create_sample_data():
         # db.add(learning_path_enrollment1)
         # db.commit()
 
-        print("Sample data created successfully.")
 
         # Create certificates
         certificate1 = Certificate(
             user_id=employee.id,
             course_id=course1.id,
+            issue_date=datetime.now()
+
             # certificate_url="http://example.com/certificates/certificate1.pdf"
         )
         certificate2 = Certificate(
             user_id=employee.id,
             course_id=course2.id,
+            issue_date=datetime.now()
             # certificate_url="http://example.com/certificates/certificate2.pdf"
         )
         certificate3 = Certificate(
             user_id=employee.id,
             course_id=course3.id,
+            issue_date=datetime.now()
+
             # certificate_url="http://example.com/certificates/certificate3.pdf"
         )
 
         db.add_all([certificate1, certificate2, certificate3])
         db.commit()
+        print("Sample data created successfully.")
 
     except Exception as e:
         db.rollback()

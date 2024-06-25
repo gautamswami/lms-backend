@@ -319,8 +319,8 @@ class Certificate(Base):
     issue_date = Column(Date, default=func.now())
     # certificate_url = Column(String)
     # Relationships
-    user = relationship("User", backref="certificates")
-    course = relationship("Course", backref="certificates")
+    user = relationship("User",foreign_keys=[user_id], backref="certificates")
+    course = relationship("Course",foreign_keys=[course_id], backref="certificates")
 
 
 class LearningPath(Base):
@@ -338,37 +338,37 @@ class LearningPath(Base):
         return sum(course.expected_time_to_complete for course in self.courses)
 
 
-class LearningPathEnrollment(Base):
-    __tablename__ = "learning_path_enrollments"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
-    enroll_date = Column(Date, default=func.now())
-    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
-    due_date = Column(Date)
-    status = Column(String, default="Enrolled")
-    completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
-
-    # Relationships
-    # user = relationship("User", back_populates="learning_path_enrollments")
-    learning_path = relationship("LearningPath", back_populates="enrollments")
-
-    @property
-    def calculate_progress_percentage(self):
-        total_contents = 0
-        completed_contents = 0
-
-        for course in self.learning_path.courses:
-            total_contents += sum(len(chapter.contents) for chapter in course.chapters)
-            for chapter in course.chapters:
-                for content in chapter.contents:
-                    if content.id <= self.progress.last_content_id:
-                        completed_contents += 1
-
-        if total_contents == 0:
-            return 0
-        return (completed_contents / total_contents) * 100
-
+# class LearningPathEnrollment(Base):
+#     __tablename__ = "learning_path_enrollments"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
+#     enroll_date = Column(Date, default=func.now())
+#     year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+#     due_date = Column(Date)
+#     status = Column(String, default="Enrolled")
+#     completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
+#
+#     # Relationships
+#     # user = relationship("User", back_populates="learning_path_enrollments")
+#     learning_path = relationship("LearningPath", back_populates="enrollments")
+#
+#     @property
+#     def calculate_progress_percentage(self):
+#         total_contents = 0
+#         completed_contents = 0
+#
+#         for course in self.learning_path.courses:
+#             total_contents += sum(len(chapter.contents) for chapter in course.chapters)
+#             for chapter in course.chapters:
+#                 for content in chapter.contents:
+#                     if content.id <= self.progress.last_content_id:
+#                         completed_contents += 1
+#
+#         if total_contents == 0:
+#             return 0
+#         return (completed_contents / total_contents) * 100
+#
 
 class Course(Base):
     __tablename__ = "courses"
