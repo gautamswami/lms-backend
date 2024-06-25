@@ -359,7 +359,7 @@ async def upload_course_thumbnail(
 # __________________________________________________________________________________________________________
 
 
-@app.get("courses/certificate", status_code=200, response_model=CertificateDisplay)
+@app.get("/courses/certificate", status_code=200, response_model=CertificateDisplay)
 def get_certificates(db: Session = Depends(get_db),
                      current_user: User = Depends(get_current_user)):
     if current_user.role_name != "Employee":
