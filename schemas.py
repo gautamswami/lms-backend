@@ -37,6 +37,8 @@ class UserTeamView(UserBase):
     compliance_status: str
     reminder_needed: bool
 
+class UserSortDisplay(UserBase):
+    id: int
 
 class UserDisplay(UserBase):
     id: int
@@ -158,23 +160,24 @@ class ChapterDisplay(ChapterCreate):
     class Config:
         from_attributes = True
 
-
-class CourseCreate(BaseModel_):
+class CourseBase(BaseModel_):
     title: str
-    description: str
     category: str  # Assuming thumbnail is stored as a URL or file path
     expected_time_to_complete: int
     difficulty_level: Optional[str]  # Added to reflect the course difficulty level
     tags: Optional[str]  # Added to handle course tagging feature
     entity: Optional[str]  # Added to handle course tagging feature
     service_line_id: Optional[str]
+
+
+class CourseCreate(CourseBase):
+    description: str
     chapters: List[ChapterCreate] = Field(default_factory=list)
 
 
-class CourseSortDisplay(CourseCreate):
+class CourseSortDisplay(CourseBase):
     id: int
     thumbnail_file_id: Optional[str]
-    service_line_id: Optional[str]
     status: str
     ratings: float
     creation_date: datetime
@@ -486,5 +489,5 @@ class ExternalCertificationDisplay(BaseModel_):
 class CertificateDisplay(BaseModel_):
     id: int
     issue_date: date
-    user: UserDisplay
+    user: UserSortDisplay
     course: CourseSortDisplay
