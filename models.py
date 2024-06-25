@@ -198,6 +198,7 @@ class Content(Base):
     title = Column(String, nullable=False)
     content_type = Column(String)  # e.g., "video", "quiz", "text"
     file_id = Column(String, ForeignKey("files.FileID"))  # Link to the associated file
+    expected_time_to_complete = Column(Integer, default=5)
     # Relationships
     chapter = relationship("Chapter", back_populates="contents")
     file = relationship("File")  # Direct relationship to the File table
