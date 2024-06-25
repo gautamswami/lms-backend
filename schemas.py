@@ -481,6 +481,7 @@ class ExternalCertificationDisplay(BaseModel_):
     certificate_provider: str
     uploaded_by_id: int
     status: str
+    uploaded_by: UserSortDisplay
 
     class Config:
         from_attributes = True

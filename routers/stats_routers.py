@@ -5,7 +5,7 @@ from datetime import datetime
 
 from auth import get_current_user
 from dependencies import get_db
-from models import User
+from models import User, Enrollment
 from schemas import DashStats, DashInput
 
 app = APIRouter(prefix="/stats", tags=["stats"])
@@ -37,7 +37,7 @@ def dash_stats(
     enrollments_query = text(
         """
         SELECT 
-            e.course_id, e.status, e.completion_percentage, e.due_date, 
+            e.id, e.course_id, e.status, e.due_date, 
             c.expected_time_to_complete, c.title, c.category
         FROM 
             enrollments e
@@ -62,7 +62,8 @@ def dash_stats(
 
     for enrollment in enrollments:
         status = enrollment.status
-        completion_percentage = enrollment.completion_percentage
+        # TODO AKASH
+        completion_percentage = db.query(Enrollment).filter(Enrollment.id == enrollment.id).one().calculated_completion_percentage
         expected_time_to_complete = enrollment.expected_time_to_complete
         course_title = enrollment.title
         due_date = enrollment.due_date
