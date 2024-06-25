@@ -8,11 +8,13 @@ from sqlalchemy import (
     DateTime,
     Numeric,
     Index,
+    extract,
 )
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property, backref
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import and_
+from database import SessionLocal
 
 Base = declarative_base()
 
@@ -40,9 +42,6 @@ learning_path_courses = Table(
 )
 
 
-# ======================================================================
-
-
 class ServiceLine(Base):
     __tablename__ = "service_line"
 
@@ -59,7 +58,6 @@ class Designations(Base):
 
 class ExternalRoles(Base):
     __tablename__ = "external_roles"
-
     name = Column(String, primary_key=True)
 
 
@@ -100,15 +98,15 @@ class User(Base):
     employee_id = Column(String, nullable=False)
     designation = Column(String, ForeignKey("designations.name"))
     role_name = Column(String, ForeignKey("roles.RoleName"))
-    service_line_id = Column(Integer, ForeignKey("service_line.name"))
+    service_line_id = Column(String, ForeignKey("service_line.name"))
     total_training_hours = Column(Integer, default=0)
     counselor_id = Column(
         Integer, ForeignKey("users.id"), nullable=True
     )  # References another user as a counselor
     entity = Column(String)  # Added to manage multi-tenancy and service line filtering
     external_role_name = Column(String, ForeignKey("external_roles.name"))
-    # Relationships
 
+    # Relationships
     role = relationship("Role", back_populates="users")
     service_line = relationship("ServiceLine", back_populates="admins")
     courses_assigned = relationship(
@@ -121,10 +119,6 @@ class User(Base):
     feedback_given = relationship(
         "Feedback", back_populates="submitter", foreign_keys=[Feedback.submitted_by]
     )
-
-    # learning_paths = relationship(
-    #     "LearningPath", secondary=user_learning_paths, back_populates="users"
-    # )
     counselor = relationship(
         "User", remote_side=[id], backref=backref("counselees", overlaps="team_members")
     )
@@ -134,7 +128,6 @@ class User(Base):
         back_populates="counselor",
         overlaps="counselees",
     )
-    # external_certifications = relationship("ExternalCertification", back_populates="uploaded_by")
     external_certifications = relationship(
         "ExternalCertification",
         foreign_keys="[ExternalCertification.uploaded_by_id]",
@@ -199,12 +192,10 @@ class Content(Base):
     content_type = Column(String)  # e.g., "video", "quiz", "text"
     file_id = Column(String, ForeignKey("files.FileID"))  # Link to the associated file
     expected_time_to_complete = Column(Integer, default=5)
+
     # Relationships
     chapter = relationship("Chapter", back_populates="contents")
     file = relationship("File")  # Direct relationship to the File table
-
-
-from database import SessionLocal
 
 
 class Enrollment(Base):
@@ -213,7 +204,7 @@ class Enrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
     enroll_date = Column(Date, default=func.now())
-    year = Column(Integer)  # The year of enrollment, can be set based on enroll_date
+    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
     due_date = Column(Date)
     status = Column(String, default="Enrolled")
     # completion_percentage = Column(
@@ -326,7 +317,7 @@ class Certificate(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
     issue_date = Column(Date, default=func.now())
-    certificate_url = Column(String)
+    # certificate_url = Column(String)
     # Relationships
     user = relationship("User", backref="certificates")
     course = relationship("Course", backref="certificates")
@@ -336,7 +327,7 @@ class LearningPath(Base):
     __tablename__ = "learning_paths"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    service_line_id = Column(Integer, ForeignKey("service_line.name"))
+    service_line_id = Column(String, ForeignKey("service_line.name"))
     entity = Column(String)
     courses = relationship(
         "Course", secondary=learning_path_courses, back_populates="learning_paths"
@@ -347,6 +338,38 @@ class LearningPath(Base):
         return sum(course.expected_time_to_complete for course in self.courses)
 
 
+class LearningPathEnrollment(Base):
+    __tablename__ = "learning_path_enrollments"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
+    enroll_date = Column(Date, default=func.now())
+    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    due_date = Column(Date)
+    status = Column(String, default="Enrolled")
+    completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
+
+    # Relationships
+    user = relationship("User", back_populates="learning_path_enrollments")
+    learning_path = relationship("LearningPath", back_populates="enrollments")
+
+    @property
+    def calculate_progress_percentage(self):
+        total_contents = 0
+        completed_contents = 0
+
+        for course in self.learning_path.courses:
+            total_contents += sum(len(chapter.contents) for chapter in course.chapters)
+            for chapter in course.chapters:
+                for content in chapter.contents:
+                    if content.id <= self.progress.last_content_id:
+                        completed_contents += 1
+
+        if total_contents == 0:
+            return 0
+        return (completed_contents / total_contents) * 100
+
+
 class Course(Base):
     __tablename__ = "courses"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -354,7 +377,7 @@ class Course(Base):
     description = Column(String)
     category = Column(String)
     created_by = Column(Integer, ForeignKey("users.id"))
-    service_line_id = Column(Integer, ForeignKey("service_line.name"))
+    service_line_id = Column(String, ForeignKey("service_line.name"))
     expected_time_to_complete = Column(Integer)
     difficulty_level = Column(
         String, default="0"
@@ -367,25 +390,21 @@ class Course(Base):
     creation_date = Column(
         DateTime, default=func.now()
     )  # To track when a course was created
-    approved_date = Column(DateTime, default=None)  # To track when a course was created
+    approved_date = Column(DateTime, default=None)  # To track when a course was approved
     approved_by = Column(Integer, ForeignKey("users.id"))
-    questions = relationship("Questions", back_populates="course")
     entity = Column(String)  # Added to manage multi-tenancy and service line filtering
-
     thumbnail_file_id = Column(String, ForeignKey("files.FileID"))
 
     # Relationships
     approver = relationship(
         "User", foreign_keys=[approved_by], backref="approved_courses"
     )
-
     creator = relationship("User", foreign_keys=[created_by], backref="created_courses")
     service_line = relationship("ServiceLine", back_populates="courses")
     chapters = relationship("Chapter", back_populates="course")
     questions = relationship(
         "Questions", back_populates="course"
     )  # Corrected relationship
-
     users_assigned = relationship(
         "User", secondary=association_table, back_populates="courses_assigned"
     )
@@ -435,16 +454,14 @@ class ExternalCertification(Base):
     file_id = Column(String, ForeignKey("files.FileID"), nullable=False)
     certificate_provider = Column(String, nullable=False)
     uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    approved_date = Column(DateTime, default=None)  # To track when a course was created
+    approved_date = Column(DateTime, default=None)  # To track when a course was approved
     approved_by = Column(Integer, ForeignKey("users.id"))
+
     # Relationships
     file = relationship("File")
-    # uploaded_by = relationship("User", back_populates="external_certifications")
     uploaded_by = relationship(
         "User", foreign_keys=[uploaded_by_id], back_populates="external_certifications"
     )
-
-    # Define the relationship with `User` for the approver
     approver = relationship(
         "User", foreign_keys=[approved_by], back_populates="approved_certifications"
     )

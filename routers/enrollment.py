@@ -1,13 +1,15 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # Import local modules
 from auth import get_current_user
 from crud import enroll_users
 from dependencies import get_db
-from models import Course, User, Enrollment
+from models import Course, User, Enrollment, Progress, Content
 from schemas import (CourseFullDisplay, EnrollmentRequest)
 
 app = APIRouter(tags=['course', 'enrollment'])
@@ -72,3 +74,47 @@ async def enroll_by_admin(request: EnrollmentRequest, db: Session = Depends(get_
 async def get_enrolled_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     enrolled_courses = db.query(Course).join(Enrollment).filter(Enrollment.user_id == current_user.id).all()
     return enrolled_courses
+
+
+@app.put("/mark_as_done/{content_id}")
+async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        # Find the content
+        content = db.query(Content).filter(Content.id == content_id).one_or_none()
+        if not content:
+            raise HTTPException(status_code=404, detail="Content not found")
+
+        # Find the enrollment for the current user and the content's course
+        enrollment = db.query(Enrollment).filter(
+            Enrollment.user_id == current_user.id,
+            Enrollment.course_id == content.chapter.course_id
+        ).one_or_none()
+
+        if not enrollment:
+            raise HTTPException(status_code=404, detail="Enrollment not found")
+
+        # Update or create progress
+        progress = db.query(Progress).filter(Progress.enrollment_id == enrollment.id).one_or_none()
+        if not progress:
+            progress = Progress(
+                enrollment_id=enrollment.id,
+                last_chapter_id=content.chapter_id,
+                last_content_id=content.id,
+                last_accessed=func.now()
+            )
+            db.add(progress)
+        else:
+            progress.last_chapter_id = content.chapter_id
+            progress.last_content_id = content.id
+            progress.last_accessed = func.now()
+
+        # Commit the changes
+        db.commit()
+        return {"message": "Progress updated successfully"}
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
