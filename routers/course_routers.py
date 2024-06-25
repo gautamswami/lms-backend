@@ -21,7 +21,7 @@ from schemas import (
     CourseUpdate,
     ContentCreate,
     QuestionCreate,
-    ContentFile,
+    ContentFile, CertificateDisplay,
 )
 import json
 
