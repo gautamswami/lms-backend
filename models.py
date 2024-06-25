@@ -350,7 +350,7 @@ class LearningPathEnrollment(Base):
     completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
 
     # Relationships
-    user = relationship("User", back_populates="learning_path_enrollments")
+    # user = relationship("User", back_populates="learning_path_enrollments")
     learning_path = relationship("LearningPath", back_populates="enrollments")
 
     @property
