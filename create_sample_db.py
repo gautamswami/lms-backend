@@ -366,18 +366,18 @@ def create_sample_data():
         learning_path1.courses.append(course1)
         db.add(learning_path1)
         db.commit()
-
-        # Add learning path enrollments
-        learning_path_enrollment1 = LearningPathEnrollment(
-            user_id=employee.id,
-            learning_path_id=learning_path1.id,
-            enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=30),
-            year=datetime.now().year,
-            status="Enrolled",
-        )
-        db.add(learning_path_enrollment1)
-        db.commit()
+        #
+        # # Add learning path enrollments
+        # learning_path_enrollment1 = LearningPathEnrollment(
+        #     user_id=employee.id,
+        #     learning_path_id=learning_path1.id,
+        #     enroll_date=datetime.now(),
+        #     due_date=datetime.now() + timedelta(days=30),
+        #     year=datetime.now().year,
+        #     status="Enrolled",
+        # )
+        # db.add(learning_path_enrollment1)
+        # db.commit()
 
         print("Sample data created successfully.")
 
