@@ -319,9 +319,8 @@ class Certificate(Base):
     issue_date = Column(Date, default=func.now())
     # certificate_url = Column(String)
     # Relationships
-    user = relationship("User",foreign_keys=[user_id], backref="certificates")
-    course = relationship("Course",foreign_keys=[course_id], backref="certificates")
-
+    user = relationship("User", backref="certificates")
+    course = relationship("Course", backref="certificates")
 
 class LearningPath(Base):
     __tablename__ = "learning_paths"
@@ -437,6 +436,14 @@ class Course(Base):
 
     average_rating = column_property(
         select(func.avg(Feedback.rating))
+        .where(Feedback.course_id == id)
+        .correlate_except(Feedback)
+        .scalar_subquery()
+    )
+
+
+    feedback_count = column_property(
+        select(func.count(Feedback.rating))
         .where(Feedback.course_id == id)
         .correlate_except(Feedback)
         .scalar_subquery()

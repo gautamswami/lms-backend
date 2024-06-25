@@ -21,7 +21,7 @@ from schemas import (
     CourseUpdate,
     ContentCreate,
     QuestionCreate,
-    ContentFile, CertificateDisplay,
+    ContentFile, CertificateDisplay, UserSortDisplay,
 )
 import json
 
@@ -33,9 +33,9 @@ app = APIRouter(tags=["course"])
 
 @app.post("/courses", response_model=CourseFullDisplay)
 async def create_course(
-    course_data: CourseCreate,  # Assume JSON data is submitted
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_data: CourseCreate,  # Assume JSON data is submitted
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name == "Employee":
         raise HTTPException(
@@ -73,7 +73,7 @@ async def create_course(
 # Retrieve all courses
 @app.get("/courses", response_model=List[CourseSortDisplay])
 def get_courses(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     print(current_user.first_name)
     courses = db.query(Course).options(joinedload(Course.approver)).all()
@@ -83,7 +83,7 @@ def get_courses(
 # Retrieve courses the current user is enrolled in
 @app.get("/courses/enrolled", response_model=List[CourseSortDisplay])
 def get_courses(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     enrollments = (
         db.query(Enrollment).filter(Enrollment.user_id == current_user.id).all()
@@ -95,7 +95,7 @@ def get_courses(
 # Retrieve active courses with user's progress
 @app.get("/courses/active", response_model=List[CourseSortDisplay])
 def get_courses(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     progresses = db.query(Progress).filter(Enrollment.user_id == current_user.id).all()
     courses = {progress.enrollment.course for progress in progresses}
@@ -105,7 +105,7 @@ def get_courses(
 # Retrieve completed courses
 @app.get("/courses/completed", response_model=List[CourseFullDisplay])
 def get_courses(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     enrollments = (
         db.query(Enrollment)
@@ -120,9 +120,9 @@ def get_courses(
 # Retrieve a specific course by ID
 @app.get("/courses/{course_id}", response_model=CourseFullDisplay)
 def get_course(
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -132,10 +132,10 @@ def get_course(
 
 @app.put("/courses/{course_id}", response_model=CourseSortDisplay)
 def update_question(
-    course_id: int,
-    question_data: CourseUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_id: int,
+        question_data: CourseUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name == "Employee":
         raise HTTPException(
@@ -160,9 +160,9 @@ def update_question(
 
 @app.delete("/courses/{course_id}", status_code=204)
 def update_question(
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     # DELETE course by id only if there is no Enrollments, delete all  Chapters, delete all content
     # Check for any existing enrollments for the course
@@ -199,9 +199,9 @@ def update_question(
 # Create a new chapter for a course
 @app.post("/courses/chapters/", response_model=ChapterDisplay)
 def create_chapter(
-    chapter: ChapterCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        chapter: ChapterCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     course = db.query(Course).filter(Course.id == chapter.course_id).first()
     if not course or course.created_by != current_user.id:
@@ -218,11 +218,11 @@ def create_chapter(
 
 @app.post("/chapters/{chapter_id}/content/", response_model=List[ContentDisplay])
 async def create_content(
-    chapter_id: int,
-    titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
-    expected_time_to_complete: str = Form(...),
-    files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
+        chapter_id: int,
+        titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
+        expected_time_to_complete: str = Form(...),
+        files: List[UploadFile] = File(...),
+        db: Session = Depends(get_db),
 ):
     try:
         titles = json.loads(titles_json)  # Deserialize JSON string into a Python list
@@ -270,9 +270,9 @@ async def create_content(
 # Enroll the current user into a course
 @app.post("/enroll/self/", status_code=201)
 async def enroll_self(
-    request: EnrollmentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        request: EnrollmentRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if len(request.user_ids) != 1 or request.user_ids[0] != current_user.id:
         raise HTTPException(status_code=403, detail="You can only enroll yourself.")
@@ -282,9 +282,9 @@ async def enroll_self(
 
 @app.patch("/courses/{course_id}/approve")
 def approve_course(
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name in ["Employee", "Instructor"]:
         raise HTTPException(status_code=403, detail="Only admins can approve courses")
@@ -303,9 +303,9 @@ def approve_course(
 
 @app.patch("/courses/{course_id}/reject")
 def approve_course(
-    course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        course_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name in ["Employee", "Instructor"]:
         raise HTTPException(status_code=403, detail="Only admins can approve courses")
@@ -324,9 +324,9 @@ def approve_course(
 
 @app.post("/courses/{course_id}/thumbnail", status_code=200)
 async def upload_course_thumbnail(
-    course_id: int = Path(..., description="The ID of the course"),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+        course_id: int = Path(..., description="The ID of the course"),
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
 ):
     # Check if the file is an image
     if not file.content_type.startswith("image/"):
@@ -359,7 +359,7 @@ async def upload_course_thumbnail(
 # __________________________________________________________________________________________________________
 
 
-@app.get("/courses/certificate", status_code=200, response_model=CertificateDisplay)
+@app.get("/courses/certificate/", status_code=200, response_model=List[CertificateDisplay])
 def get_certificates(db: Session = Depends(get_db),
                      current_user: User = Depends(get_current_user)):
     if current_user.role_name != "Employee":
