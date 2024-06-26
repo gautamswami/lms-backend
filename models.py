@@ -359,22 +359,22 @@ class LearningPathEnrollment(Base):
     # Relationships
     user = relationship("User", back_populates="learning_path_enrollments")
     learning_path = relationship("LearningPath", back_populates="enrollments")
-
-    @property
-    def calculate_progress_percentage(self):
-        total_contents = 0
-        completed_contents = 0
-
-        for course in self.learning_path.courses:
-            total_contents += sum(len(chapter.contents) for chapter in course.chapters)
-            for chapter in course.chapters:
-                for content in chapter.contents:
-                    if content.id <= self.progress.last_content_id:
-                        completed_contents += 1
-
-        if total_contents == 0:
-            return 0
-        return (completed_contents / total_contents) * 100
+    #
+    # @property
+    # def calculate_progress_percentage(self):
+    #     total_contents = 0
+    #     completed_contents = 0
+    #
+    #     for course in self.learning_path.courses:
+    #         total_contents += sum(len(chapter.contents) for chapter in course.chapters)
+    #         for chapter in course.chapters:
+    #             for content in chapter.contents:
+    #                 if content.id <= self.progress.last_content_id:
+    #                     completed_contents += 1
+    #
+    #     if total_contents == 0:
+    #         return 0
+    #     return (completed_contents / total_contents) * 100
 
 
 
