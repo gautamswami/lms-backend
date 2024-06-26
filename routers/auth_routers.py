@@ -1,28 +1,26 @@
 from datetime import timedelta
 from typing import Annotated, Union
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response, status, Cookie
+from fastapi import APIRouter, Depends, Response, status
+from fastapi import HTTPException, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from fastapi.responses import JSONResponse
+
 import auth
 import crud
 import schemas
-from auth import oauth2_scheme
 from dependencies import get_db
-from models import User
-from schemas import UserCreate, Token, UserDisplay
-
-from fastapi import FastAPI, Request, HTTPException, Header, Body
+from models import User, AppStatus
+from schemas import Token, UserDisplay
 
 app = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @app.post("/token", response_model=Token)
 def login_for_access_token(
-    response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
+        response: Response,
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(get_db),
 ):
     user = auth.authenticate_user(
         db, email=form_data.username, password=form_data.password
@@ -37,12 +35,14 @@ def login_for_access_token(
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    app_status = db.query(AppStatus).first()
 
     return Token(
         **{
             "access_token": access_token,
             "token_type": "bearer",
             "user_details": UserDisplay.from_orm(user),
+            "app_status": app_status.status_update
         }
     )
 
@@ -69,11 +69,11 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 # ):
 @app.get("/users/me", response_model=schemas.UserDisplay)
 def read_users_me(
-    response: Response,
-    authorization: Annotated[
-        Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
-    db: Session = Depends(get_db),
+        response: Response,
+        authorization: Annotated[
+            Union[str, None], Header()
+        ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImV4cCI6MTcxODc5NDEzOX0.IzHb87ebl9lr0MIzJK-8hRFlVf8ZI8ubFq1eHUzS8F4",
+        db: Session = Depends(get_db),
 ):
     print("calling token_auth", authorization)
     token = token_auth(authorization)
