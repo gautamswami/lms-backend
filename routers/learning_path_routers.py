@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 
 # Import local modules
 from auth import get_current_user
+from crud import enroll_users, enroll_users_lp
 from dependencies import get_db
-from models import Course, User, Enrollment, LearningPath
-from schemas import (CourseUpdate, LearningPathDisplay, LearningPathCreate)
+from models import Course, User, LearningPath, LearningPathEnrollment
+from schemas import (CourseUpdate, LearningPathDisplay, LearningPathCreate, AssignLearningPath)
 
 app = APIRouter(tags=['learning_path'])
 
@@ -43,23 +44,17 @@ def get_learning_path(db: Session = Depends(get_db), current_user: User = Depend
 
 # Retrieve learning_path the current user is enrolled in
 @app.get("/learning_path/enrolled", response_model=List[LearningPathDisplay])
-def get_enrolled_learning_path(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # get enrolled of current_user
-    enrolled_courses = db.query(Course).join(Enrollment).filter(Enrollment.user_id == current_user.id).subquery()
-    enrolled_paths = db.query(LearningPath).join(enrolled_courses, LearningPath.courses).all()
+def get_enrolled_learning_paths(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    enrolled_paths = db.query(LearningPath).join(LearningPathEnrollment).filter(
+        LearningPathEnrollment.user_id == current_user.id).all()
     return enrolled_paths
 
 
 # Retrieve completed learning_path
 @app.get("/learning_path/completed", response_model=List[LearningPathDisplay])
-def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Query all learning paths where all courses are completed by the current user
-    completed_paths = db.query(LearningPath).filter(
-        ~LearningPath.courses.any(
-            ~Enrollment.user_id == current_user.id,
-            Enrollment.status != "Completed"
-        )
-    ).all()
+def get_completed_learning_paths(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    completed_paths = db.query(LearningPath).join(LearningPathEnrollment).filter(
+        LearningPathEnrollment.user_id == current_user.id, LearningPathEnrollment.status == "Completed").all()
     return completed_paths
 
 
@@ -96,3 +91,32 @@ def update_question(learning_path_id: int, db: Session = Depends(get_db),
     db.delete(path)
     db.commit()
     return Response(status_code=204)
+
+
+# Assign users to a learning path
+@app.post("/learning_path/assign/", status_code=201)
+def assign_users_to_learning_path(request: AssignLearningPath,
+                                  db: Session = Depends(get_db),
+                                  current_user: User = Depends(get_current_user)):
+    # Retrieve the learning path with its courses
+    learning_path = db.query(LearningPath).filter(LearningPath.id == request.learning_path_id).first()
+    if not learning_path:
+        raise HTTPException(status_code=404, detail="Learning path not found")
+
+    # Iterate over each user ID provided
+    for user_id in request.user_ids:
+        # Check if the user exists
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            continue  # Skip if user does not exist, or handle differently as per requirement
+
+        enroll_users_lp(learning_path.id, user_id, request.due_date, db)
+
+        # Assign each course in the learning path to the user
+        for course in learning_path.courses:
+            enroll_users(course.id, [user_id], db)
+
+    # Commit all changes to the database
+    db.commit()
+
+    return {"message": "Users and courses assigned successfully"}
