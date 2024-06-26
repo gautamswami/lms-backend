@@ -13,6 +13,7 @@ from routers.quiz import app as quiz
 from routers.learning_path_routers import app as learning_path_routers
 from routers.feedback_routers import app as feedback_routers
 from routers.external_certifications import app as external_certifications
+from routers.app_status import app as app_status
 
 # from create_sample_db import create_sample_data
 
@@ -42,6 +43,7 @@ app.include_router(quiz)
 app.include_router(learning_path_routers)
 app.include_router(external_certifications)
 app.include_router(feedback_routers)
+app.include_router(app_status)
 
 if __name__ == "__main__":
     import uvicorn

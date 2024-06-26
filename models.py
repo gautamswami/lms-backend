@@ -9,12 +9,15 @@ from sqlalchemy import (
     Numeric,
     Index,
     extract,
+    Boolean,
 )
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property, backref
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import and_
 from database import SessionLocal
+from datetime import datetime
+from sqlalchemy.ext.hybrid import hybrid_property
 
 Base = declarative_base()
 
@@ -204,7 +207,9 @@ class Enrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
     enroll_date = Column(Date, default=func.now())
-    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    year = Column(
+        Integer, default=lambda: extract("year", func.now())
+    )  # Default value of current year
     due_date = Column(Date)
     status = Column(String, default="Enrolled")
     # completion_percentage = Column(
@@ -322,6 +327,7 @@ class Certificate(Base):
     user = relationship("User", backref="certificates")
     course = relationship("Course", backref="certificates")
 
+
 class LearningPath(Base):
     __tablename__ = "learning_paths"
     id = Column(Integer, primary_key=True)
@@ -369,6 +375,7 @@ class LearningPath(Base):
 #         return (completed_contents / total_contents) * 100
 #
 
+
 class Course(Base):
     __tablename__ = "courses"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -389,7 +396,9 @@ class Course(Base):
     creation_date = Column(
         DateTime, default=func.now()
     )  # To track when a course was created
-    approved_date = Column(DateTime, default=None)  # To track when a course was approved
+    approved_date = Column(
+        DateTime, default=None
+    )  # To track when a course was approved
     approved_by = Column(Integer, ForeignKey("users.id"))
     entity = Column(String)  # Added to manage multi-tenancy and service line filtering
     thumbnail_file_id = Column(String, ForeignKey("files.FileID"))
@@ -441,7 +450,6 @@ class Course(Base):
         .scalar_subquery()
     )
 
-
     feedback_count = column_property(
         select(func.count(Feedback.rating))
         .where(Feedback.course_id == id)
@@ -461,7 +469,9 @@ class ExternalCertification(Base):
     file_id = Column(String, ForeignKey("files.FileID"), nullable=False)
     certificate_provider = Column(String, nullable=False)
     uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    approved_date = Column(DateTime, default=None)  # To track when a course was approved
+    approved_date = Column(
+        DateTime, default=None
+    )  # To track when a course was approved
     approved_by = Column(Integer, ForeignKey("users.id"))
 
     # Relationships
@@ -476,3 +486,32 @@ class ExternalCertification(Base):
     @property
     def sample_property(self):
         return len(self.uploaded_by.uploaded_certifications)
+
+
+class QuizCompletions(Base):
+    __tablename__ = "quiz_completions"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    correct_answer = Column(Boolean, nullable=False)
+    source = Column(String, nullable=False)
+    enrollment_id = Column(Integer, ForeignKey("enrollments.id"), nullable=False)
+    attempt_datetime = Column(DateTime, default=datetime.now)
+
+    def calculate_attempt_no(self, db):
+        """Calculate the attempt number before inserting a new record."""
+        return (
+            db.query(func.count(QuizCompletions.id))
+            .filter(
+                QuizCompletions.question_id == self.question_id,
+                QuizCompletions.enrollment_id == self.enrollment_id,
+            )
+            .scalar()
+            + 1
+        )
+
+
+class AppStatus(Base):
+    __tablename__ = "app_status"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    status_update = Column(Boolean, nullable=False)
+    update_datetime = Column(DateTime, default=datetime.now)
