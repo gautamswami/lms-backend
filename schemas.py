@@ -37,8 +37,10 @@ class UserTeamView(UserBase):
     compliance_status: str
     reminder_needed: bool
 
+
 class UserSortDisplay(UserBase):
     id: int
+
 
 class UserDisplay(UserBase):
     id: int
@@ -159,6 +161,7 @@ class ChapterDisplay(ChapterCreate):
 
     class Config:
         from_attributes = True
+
 
 class CourseBase(BaseModel_):
     title: str
