@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from passlib.context import CryptContext
 from sqlalchemy import create_engine
@@ -177,7 +177,7 @@ def create_sample_data():
             expected_time_to_complete=10,
             approved_by=admin.id,
             approved_date=datetime.now(),
-            status="approved",
+            status="approve",
         )
         course3 = Course(
             title="course3",
@@ -188,7 +188,7 @@ def create_sample_data():
             expected_time_to_complete=10,
             approved_by=admin.id,
             approved_date=datetime.now(),
-            status="approved",
+            status="approve",
             tags="advanced,ml",
         )
         course4 = Course(
@@ -200,7 +200,7 @@ def create_sample_data():
             expected_time_to_complete=10,
             approved_by=admin.id,
             approved_date=datetime.now(),
-            status="approved",
+            status="approve",
         )
         course5 = Course(
             title="course5",
@@ -211,7 +211,7 @@ def create_sample_data():
             expected_time_to_complete=10,
             approved_by=admin.id,
             approved_date=datetime.now(),
-            status="approved",
+            status="approve",
         )
         course6 = Course(
             title="Advanced Data Science",
@@ -222,7 +222,7 @@ def create_sample_data():
             expected_time_to_complete=20,
             approved_by=admin.id,
             approved_date=datetime.now(),
-            status="approved",
+            status="approve",
             tags="beginner,python",
         )
 
@@ -365,9 +365,11 @@ def create_sample_data():
             entity="Pierian"
         )
         learning_path1.courses.append(course1)
+        learning_path1.courses.append(course2)
+        learning_path1.courses.append(course3)
         db.add(learning_path1)
         db.commit()
-        #
+
         # # Add learning path enrollments
         # learning_path_enrollment1 = LearningPathEnrollment(
         #     user_id=employee.id,

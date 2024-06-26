@@ -158,6 +158,7 @@ class ChapterCreate(ChapterBase):
 class ChapterDisplay(ChapterCreate):
     id: int
     contents: list[ContentDisplay]
+    questions: list[QuestionDisplay]
 
     class Config:
         from_attributes = True
@@ -195,6 +196,7 @@ class CourseFullDisplay(CourseSortDisplay):
     approver: Optional[UserDisplay]
     creator: Optional[UserDisplay]
     chapters: List[ChapterDisplay] = []
+    questions: List[QuestionDisplay] = []
 
     class Config:
         from_attributes = True
@@ -312,10 +314,14 @@ class LearningPathDisplay(LearningPathBase):
         from_attributes = True
 
 
+class LearningPathEnrollmentRequest(BaseModel_):
+    user_ids:List[int] = []
+
+
 class AssignLearningPath(BaseModel_):
     learning_path_id: int
-    user_id: int
-    assign_date: datetime  # Date when the learning path is assigned to the user
+    user_ids: List[int]
+    due_date: datetime
 
     class Config:
         from_attributes = True

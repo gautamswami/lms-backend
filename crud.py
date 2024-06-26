@@ -150,3 +150,25 @@ def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
         "course_id": course_id,
         "user_ids": user_ids,
     }
+
+
+def enroll_users_lp(learning_path_id: int, user_id: int, due_date: datetime, db: Session) -> dict:
+    lp = db.query(LearningPath).filter(LearningPath.id == learning_path_id).first()
+    if not lp:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    enrollment = LearningPathEnrollment(
+        user_id=user_id,
+        learning_path_id=learning_path_id,
+        enroll_date=datetime.now(),
+        due_date=due_date,
+        year=datetime.now().year,
+        status="Enrolled",
+    )
+    db.add(enrollment)
+    db.commit()
+    return {
+        "message": "Users successfully enrolled",
+        "course_id": learning_path_id,
+        "user_ids": user_id,
+    }

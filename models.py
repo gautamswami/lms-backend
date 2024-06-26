@@ -207,10 +207,8 @@ class Enrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
     enroll_date = Column(Date, default=func.now())
-    year = Column(
-        Integer, default=lambda: extract("year", func.now())
-    )  # Default value of current year
-    due_date = Column(Date)
+    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    due_date = Column(Date, nullable=True)
     status = Column(String, default="Enrolled")
     # completion_percentage = Column(
     #     Numeric, default=0
@@ -334,46 +332,50 @@ class LearningPath(Base):
     name = Column(String, nullable=False)
     service_line_id = Column(String, ForeignKey("service_line.name"))
     entity = Column(String)
+
     courses = relationship(
         "Course", secondary=learning_path_courses, back_populates="learning_paths"
     )
+    enrollments = relationship("LearningPathEnrollment", back_populates="learning_path")
 
     @property
     def expected_time_to_complete(self):
         return sum(course.expected_time_to_complete for course in self.courses)
 
 
-# class LearningPathEnrollment(Base):
-#     __tablename__ = "learning_path_enrollments"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
-#     enroll_date = Column(Date, default=func.now())
-#     year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
-#     due_date = Column(Date)
-#     status = Column(String, default="Enrolled")
-#     completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
-#
-#     # Relationships
-#     # user = relationship("User", back_populates="learning_path_enrollments")
-#     learning_path = relationship("LearningPath", back_populates="enrollments")
-#
-#     @property
-#     def calculate_progress_percentage(self):
-#         total_contents = 0
-#         completed_contents = 0
-#
-#         for course in self.learning_path.courses:
-#             total_contents += sum(len(chapter.contents) for chapter in course.chapters)
-#             for chapter in course.chapters:
-#                 for content in chapter.contents:
-#                     if content.id <= self.progress.last_content_id:
-#                         completed_contents += 1
-#
-#         if total_contents == 0:
-#             return 0
-#         return (completed_contents / total_contents) * 100
-#
+class LearningPathEnrollment(Base):
+    __tablename__ = "learning_path_enrollments"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
+    enroll_date = Column(Date, default=func.now())
+    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    due_date = Column(Date, nullable=True, default=func.now())
+    status = Column(String, default="Enrolled")
+    completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
+
+    # Relationships
+
+    # Relationships
+    user = relationship("User", back_populates="learning_path_enrollments")
+    learning_path = relationship("LearningPath", back_populates="enrollments")
+
+    @property
+    def calculate_progress_percentage(self):
+        total_contents = 0
+        completed_contents = 0
+
+        for course in self.learning_path.courses:
+            total_contents += sum(len(chapter.contents) for chapter in course.chapters)
+            for chapter in course.chapters:
+                for content in chapter.contents:
+                    if content.id <= self.progress.last_content_id:
+                        completed_contents += 1
+
+        if total_contents == 0:
+            return 0
+        return (completed_contents / total_contents) * 100
+
 
 
 class Course(Base):
@@ -449,6 +451,7 @@ class Course(Base):
         .correlate_except(Feedback)
         .scalar_subquery()
     )
+
 
     feedback_count = column_property(
         select(func.count(Feedback.rating))
