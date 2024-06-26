@@ -42,6 +42,18 @@ app = APIRouter(tags=["course"])
 # ------------------- Course Operations -------------------
 
 
+@app.get("/courses/{course_id}", response_model=CourseFullDisplay)
+async def get_course(course_id: int, db: Session = Depends(get_db)):
+    # Retrieve the course with all related data like chapters and quizzes if needed
+    course = db.query(Course).filter(Course.id == course_id).first()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Assuming CourseFullDisplay includes all necessary data
+    return course
+
+
 @app.post("/courses", response_model=CourseFullDisplay)
 async def create_course(
     course_data: CourseCreate,  # Assume JSON data is submitted
