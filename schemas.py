@@ -190,7 +190,7 @@ class CourseSortDisplay(CourseBase):
     chapters_count: Optional[int]
     feedback_count: Optional[int]
     completed_students_count: Optional[int]
-    average_rating: Optional[int]
+    average_rating: Optional[float]
 
 
 class CourseFullDisplay(CourseSortDisplay):
