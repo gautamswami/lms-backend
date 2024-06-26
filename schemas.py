@@ -361,6 +361,7 @@ class Token(BaseModel_):
     access_token: str
     token_type: str
     user_details: Union[UserDisplay, InstructorDisplay]
+    app_status: bool
 
 
 class TokenData(BaseModel_):
