@@ -157,6 +157,7 @@ class ChapterCreate(ChapterBase):
 
 class ChapterDisplay(ChapterCreate):
     id: int
+    expected_time_to_complete: int =0
     contents: list[ContentDisplay]
     questions: list[QuestionDisplay]
 

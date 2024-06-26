@@ -118,3 +118,27 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/content_status/{content_id}")
+async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        # Query for existing progress that matches the content_id and the current user
+        progress = (db.query(Progress)
+                    .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+                    .filter(Progress.last_content_id == content_id, Enrollment.user_id == current_user.id)
+                    .one_or_none())
+
+
+        if progress:
+            return True
+        else:
+            return False
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
