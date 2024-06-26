@@ -2,9 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from dependencies import get_db
-from models import Questions
-from schemas import QuestionDisplay, QuestionCreate, QuestionUpdate, QuestionGetRequest
-
+from models import Questions, QuizCompletions
+from schemas import (
+    QuestionDisplay,
+    QuestionCreate,
+    QuestionUpdate,
+    QuestionGetRequest,
+    QuestionSubmission,
+    QuizCompletionResponse,
+)
+from datetime import datetime
 from typing import List, Optional
 from fastapi import Query
 
@@ -162,3 +169,35 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
     db.delete(question)
     db.commit()
     return {"message": "Question deleted successfully"}
+
+
+@app.post("/questions/submission/", response_model=QuizCompletionResponse)
+def submit_question(
+    submission: QuestionSubmission = Depends(),
+    db: Session = Depends(get_db),
+):
+    # Retrieve the question to check the correct answer
+    question = (
+        db.query(Questions).filter(Questions.id == submission.question_id).first()
+    )
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    # Check if the selected option is correct
+    is_correct = submission.selected_option == question.correct_answer
+
+    # Create a new quiz completion record
+    new_quiz_completion = QuizCompletions(
+        question_id=submission.question_id,
+        correct_answer=is_correct,
+        source=submission.source,
+        enrollment_id=submission.enrollment_id,
+        attempt_datetime=datetime.now(),
+    )
+    # Calculate the attempt number before committing
+    new_quiz_completion.attempt_no = new_quiz_completion.calculate_attempt_no(db)
+
+    db.add(new_quiz_completion)
+    db.commit()
+
+    return new_quiz_completion

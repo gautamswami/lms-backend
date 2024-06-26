@@ -495,3 +495,25 @@ class CertificateDisplay(BaseModel_):
     issue_date: date
     user: UserSortDisplay
     course: CourseSortDisplay
+
+
+class QuestionSubmission(BaseModel_):
+    question_id: int
+    selected_option: str
+    user_id: int
+    source: str
+    enrollment_id: int
+
+
+class QuizCompletionResponse(BaseModel_):
+    id: int
+    question_id: int
+    correct_answer: bool
+    source: str
+    enrollment_id: int
+    attempt_no: int
+    attempt_datetime: datetime
+
+
+class StatusUpdate(BaseModel_):
+    status_update: bool
