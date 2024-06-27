@@ -127,7 +127,7 @@ class QuestionCreate(QuestionBase):
 
 
 class QuestionDisplay(QuestionBase):
-    id: str
+    id: int
 
 
 class QuestionGetRequest(BaseModel_):
