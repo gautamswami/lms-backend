@@ -57,7 +57,7 @@ class UserDisplay(UserBase):
 class InstructorDisplay(UserBase):
     id: int
     counselor: Optional[UserBase]
-    team_members: Optional[List[UserBase]]
+    team_members: Optional[List[UserBase]] = []
     total_training_hours: (
         int  # Add total training hours to match ORM and requirement document
     )
@@ -157,7 +157,7 @@ class ChapterCreate(ChapterBase):
 
 class ChapterDisplay(ChapterCreate):
     id: int
-    expected_time_to_complete: int =0
+    expected_time_to_complete: int = 0
     contents: list[ContentDisplay]
     questions: list[QuestionDisplay]
 
@@ -316,7 +316,7 @@ class LearningPathDisplay(LearningPathBase):
 
 
 class LearningPathEnrollmentRequest(BaseModel_):
-    user_ids:List[int] = []
+    user_ids: List[int] = []
 
 
 class AssignLearningPath(BaseModel_):
