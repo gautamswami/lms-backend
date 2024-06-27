@@ -75,7 +75,7 @@ Contact us: [Support Email/Phone Number]"""
 
 @app.post("/users/forgot-password/")
 def forgot_password(
-        email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+    email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """
 
@@ -129,9 +129,9 @@ def reset_password(reset: ResetPassword, db: Session = Depends(get_db)):
 
 @app.post("/users/", response_model=UserDisplay, status_code=status.HTTP_201_CREATED)
 def create_user(
-        user: UserCreate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth.get_current_user),
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.get_user_by_email(db, email=user.email)
@@ -144,10 +144,12 @@ def create_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
-@app.get("/users/", response_model=List[UserDisplay], status_code=status.HTTP_201_CREATED)
+@app.get(
+    "/users/", response_model=List[UserDisplay], status_code=status.HTTP_201_CREATED
+)
 def get_all_user(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
     users = db.query(User).all()
     return users
@@ -155,9 +157,9 @@ def get_all_user(
 
 @app.get("/users/{user_id}", response_model=UserDisplay)
 def read_user(
-        user_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth.get_current_user),
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
     try:
         if current_user.role_name not in ["Admin", "Super Admin"]:
@@ -175,10 +177,10 @@ def read_user(
 # noinspection PyTypeChecker
 @app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
-        user_id: int,
-        user: UserUpdate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth.get_current_user),
+    user_id: int,
+    user: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
     try:
         print(1)
@@ -197,9 +199,9 @@ def update_user(
 
 @app.delete("/users/{user_id}", response_model=UserDisplay)
 def delete_user(
-        user_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth.get_current_user),
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.delete_user(db, user_id=user_id)
@@ -212,55 +214,101 @@ def delete_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
-# noinspection PyTypeChecker
+# # noinspection PyTypeChecker
+# @app.get("/get_all", response_model=UM_send_all)
+# def get_all(
+#     db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
+# ):
+#     instructors = crud.get_users_by_filter(
+#         db=db,
+#         filters={
+#             "service_line_id": current_user.service_line_id,
+#             "role_name": "Instructor",
+#         },
+#     )
+#     admins = crud.get_users_by_filter(
+#         db=db,
+#         filters={
+#             "role_name": "Admin",
+#         },
+#     )
+#     admin_displays = [UserDisplay.from_orm(admin) for admin in admins]
+#     designations = db.query(Designations).all()
+#     service_lines = db.query(ServiceLine).all()
+#     external_roles = db.query(ExternalRoles).all()
+#     internal_roles = db.query(Role).all()
+
+#     instructor_displays = []
+#     for instructor in instructors:
+#         # noinspection PyTypeChecker
+#         team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
+#         team_members_pydantic = [UserBase.from_orm(member) for member in team_members]
+#         instructor_display = InstructorDisplay(
+#             id=instructor.id,
+#             first_name=instructor.first_name,
+#             last_name=instructor.last_name,
+#             email=instructor.email,
+#             role_name=instructor.role_name,
+#             employee_id=instructor.employee_id,
+#             designation=instructor.designation,
+#             service_line_id=instructor.service_line_id,
+#             total_training_hours=instructor.total_training_hours,
+#             external_role_name=instructor.external_role_name,
+#             counselor=(
+#                 UserBase.from_orm(instructor.counselor)
+#                 if instructor.counselor
+#                 else None
+#             ),
+#             team_members=team_members_pydantic,
+#         )
+#         instructor_displays.append(instructor_display)
+
+#     return UM_send_all(
+#         instructors=instructor_displays,
+#         admins=admin_displays,
+#         designations=[
+#             DesignationModel.from_orm(designation) for designation in designations
+#         ],
+#         service_lines=[
+#             ServiceLineModel.from_orm(service_line) for service_line in service_lines
+#         ],
+#         external_roles=[ExternalRoleModel.from_orm(role) for role in external_roles],
+#         internal_roles=[InternalRoleModel.from_orm(role) for role in internal_roles],
+#     )
+
+
 @app.get("/get_all", response_model=UM_send_all)
 def get_all(
-        db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
 ):
-    instructors = crud.get_users_by_filter(
-        db=db,
-        filters={
-            "service_line_id": current_user.service_line_id,
-            "role_name": "Instructor",
-        },
-    )
-    admins = crud.get_users_by_filter(
-        db=db,
-        filters={
-            "role_name": "Admin",
-        },
-    )
+    if current_user.role_name == "Super Admin":
+        # Fetch all users without regard to service line if user is Super Admin
+        instructors = db.query(User).filter(User.role_name == "Instructor").all()
+    else:
+        # Fetch users within the same service line and for specific roles if not Super Admin
+        instructors = (
+            db.query(User)
+            .filter(
+                User.service_line_id == current_user.service_line_id,
+                User.role_name == "Instructor",
+            )
+            .all()
+        )
+
+    admins = db.query(User).filter(User.role_name == "Admin").all()
+
     admin_displays = [UserDisplay.from_orm(admin) for admin in admins]
+    instructor_displays = [
+        UserDisplay.from_orm(instructor) for instructor in instructors
+    ]
+
+    # Additional data fetches (assuming these are unchanged)
     designations = db.query(Designations).all()
     service_lines = db.query(ServiceLine).all()
     external_roles = db.query(ExternalRoles).all()
     internal_roles = db.query(Role).all()
 
-    instructor_displays = []
-    for instructor in instructors:
-        # noinspection PyTypeChecker
-        team_members = db.query(User).filter(User.counselor_id == instructor.id).all()
-        team_members_pydantic = [UserBase.from_orm(member) for member in team_members]
-        instructor_display = InstructorDisplay(
-            id=instructor.id,
-            first_name=instructor.first_name,
-            last_name=instructor.last_name,
-            email=instructor.email,
-            role_name=instructor.role_name,
-            employee_id=instructor.employee_id,
-            designation=instructor.designation,
-            service_line_id=instructor.service_line_id,
-            total_training_hours=instructor.total_training_hours,
-            external_role_name=instructor.external_role_name,
-            counselor=(
-                UserBase.from_orm(instructor.counselor)
-                if instructor.counselor
-                else None
-            ),
-            team_members=team_members_pydantic,
-        )
-        instructor_displays.append(instructor_display)
-
+    # Assemble the complete display data
     return UM_send_all(
         instructors=instructor_displays,
         admins=admin_displays,
@@ -276,13 +324,20 @@ def get_all(
 
 
 @app.get("/counselor/{counselor_id}/team_members", response_model=List[UserTeamView])
-def get_team_members(counselor_id: int, db: Session = Depends(get_db), current_user: User = Depends(
-    auth.get_current_user)):
+def get_team_members(
+    counselor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
+):
     # Fetch the counselor to validate existence and role
     if counselor_id == 0:
         counselor = current_user
     else:
-        counselor = db.query(User).filter(User.id == counselor_id, User.role_name == "Instructor").first()
+        counselor = (
+            db.query(User)
+            .filter(User.id == counselor_id, User.role_name == "Instructor")
+            .first()
+        )
     if not counselor:
         raise HTTPException(status_code=404, detail="Counselor not found")
 
@@ -297,39 +352,59 @@ def get_team_members(counselor_id: int, db: Session = Depends(get_db), current_u
         pending_trainings = [e for e in member.enrollments if e.status == "Enrolled"]
 
         mandatory_overdue = sum(
-            1 for e in member.enrollments if
-            e.course.category == "Mandatory" and e.status != "Completed" and e.due_date < datetime.now())
+            1
+            for e in member.enrollments
+            if e.course.category == "Mandatory"
+            and e.status != "Completed"
+            and e.due_date < datetime.now()
+        )
 
-        completed_hours = sum(e.course.expected_time_to_complete for e in completed_trainings)
+        completed_hours = sum(
+            e.course.expected_time_to_complete for e in completed_trainings
+        )
         technical_hours = sum(
-            e.course.expected_time_to_complete for e in completed_trainings if e.course.category == "technical")
+            e.course.expected_time_to_complete
+            for e in completed_trainings
+            if e.course.category == "technical"
+        )
         non_technical_hours = sum(
-            e.course.expected_time_to_complete for e in completed_trainings if e.course.category == "nonTechnical")
+            e.course.expected_time_to_complete
+            for e in completed_trainings
+            if e.course.category == "nonTechnical"
+        )
 
-        compliance_status = "Compliant" if technical_hours >= 50 and non_technical_hours >= 15 else "Non-Compliant"
+        compliance_status = (
+            "Compliant"
+            if technical_hours >= 50 and non_technical_hours >= 15
+            else "Non-Compliant"
+        )
 
-        team_member_details.append(UserTeamView(
-            first_name=member.first_name,
-            last_name=member.last_name,
-            email=member.email,
-            role_name=member.role_name,
-            employee_id=member.employee_id,
-            designation=member.designation,
-            service_line_id=member.service_line_id,
-            external_role_name=member.external_role_name,
-            number_of_trainings_completed=len(completed_trainings),
-            hours_of_training_completed=completed_hours,
-            hours_of_non_technical_training_completed=non_technical_hours,
-            hours_of_technical_training_completed=technical_hours,
-            hours_of_technical_training_target=50,
-            hours_of_non_technical_training_target=15,
-            number_of_trainings_pending=len(pending_trainings),
-            number_of_mandatory_trainings_overdue=mandatory_overdue,
-            compliance_status=compliance_status,
-            reminder_needed=mandatory_overdue > 0
-        ))
+        team_member_details.append(
+            UserTeamView(
+                first_name=member.first_name,
+                last_name=member.last_name,
+                email=member.email,
+                role_name=member.role_name,
+                employee_id=member.employee_id,
+                designation=member.designation,
+                service_line_id=member.service_line_id,
+                external_role_name=member.external_role_name,
+                number_of_trainings_completed=len(completed_trainings),
+                hours_of_training_completed=completed_hours,
+                hours_of_non_technical_training_completed=non_technical_hours,
+                hours_of_technical_training_completed=technical_hours,
+                hours_of_technical_training_target=50,
+                hours_of_non_technical_training_target=15,
+                number_of_trainings_pending=len(pending_trainings),
+                number_of_mandatory_trainings_overdue=mandatory_overdue,
+                compliance_status=compliance_status,
+                reminder_needed=mandatory_overdue > 0,
+            )
+        )
 
     return team_member_details
+
+
 # @app.post("/users/{user_id}/profile_pic", status_code=200)
 # async def upload_profile_pic(
 #     user_id: int = Path(..., description="The ID of the course"),
