@@ -17,6 +17,7 @@ from routers.learning_path_routers import app as learning_path_routers
 from routers.feedback_routers import app as feedback_routers
 from routers.external_certifications import app as external_certifications
 from routers.app_status import app as app_status
+from database import SessionLocal
 
 # from create_sample_db import create_sample_data
 
@@ -35,9 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# get_db()
+
 
 @app.on_event("startup")
-async def startup_event(db: Session = Depends(get_db)):
+async def startup_event():
+    db = SessionLocal()
     service_lines = [
         "Business Risk",
         "Assurance",
@@ -108,8 +112,13 @@ async def startup_event(db: Session = Depends(get_db)):
 
     roles = [
         models.Role(RoleName="Super Admin", Description="Manages the whole system"),
-        models.Role(RoleName="Admin", Description="Manages a specific LOB or department"),
-        models.Role(RoleName="Instructor", Description="Manages own courses and can propose new ones"),
+        models.Role(
+            RoleName="Admin", Description="Manages a specific LOB or department"
+        ),
+        models.Role(
+            RoleName="Instructor",
+            Description="Manages own courses and can propose new ones",
+        ),
         models.Role(RoleName="Employee", Description="Can view and enroll in courses"),
     ]
     db.add_all(roles)
@@ -142,9 +151,8 @@ async def startup_event(db: Session = Depends(get_db)):
         external_role_name="Assurance",
     )
     from datetime import datetime
-    new_status = models.AppStatus(
-        status_update=True, update_datetime=datetime.now()
-    )
+
+    new_status = models.AppStatus(status_update=True, update_datetime=datetime.now())
     db.add(new_status)
     db.add_all([super_admin])
     try:
