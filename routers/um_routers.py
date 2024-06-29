@@ -145,7 +145,7 @@ def create_user(
 
 
 @app.get(
-    "/users/", response_model=List[UserDisplay], status_code=status.HTTP_201_CREATED
+    "/users/", response_model=List[UserDisplay]
 )
 def get_all_user(
     db: Session = Depends(get_db),

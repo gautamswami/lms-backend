@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import List
 
@@ -15,7 +16,6 @@ from models import (
     User,
     Content,
     Enrollment,
-    Progress,
     Questions,
     Certificate,
 )
@@ -28,13 +28,9 @@ from schemas import (
     EnrollmentRequest,
     CourseSortDisplay,
     CourseUpdate,
-    ContentCreate,
-    QuestionCreate,
-    ContentFile,
     CertificateDisplay,
-    UserSortDisplay,
+    EnrolledCourseDisplay,
 )
-import json
 
 app = APIRouter(tags=["course"])
 
@@ -145,44 +141,93 @@ def get_courses(
 
 
 # Retrieve courses the current user is enrolled in
-@app.get("/courses/enrolled", response_model=List[CourseSortDisplay])
+@app.get("/courses/enrolled/", response_model=List[EnrolledCourseDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    enrollments = (
-        db.query(Enrollment).filter(Enrollment.user_id == current_user.id).all()
+    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    enrolled_courses = (
+        db.query(Course)
+        .join(Enrollment, Enrollment.course_id == Course.id)
+        .filter(Enrollment.user_id == current_user.id)
+        .options(joinedload(Course.enrollments))
+        .all()
     )
-    courses = [enrollment.course for enrollment in enrollments]
-    return courses
+
+    # Prepare the response by enriching the course data with enrollment-specific properties
+    response = []
+    for course in enrolled_courses:
+        for enrollment in course.enrollments:
+            course_display = EnrolledCourseDisplay.from_orm(course)
+            course_display.completed_hours = enrollment.completed_hours
+            course_display.completion_percentage = enrollment.completion_percentage
+            response.append(course_display)
+
+    return response
+
 
 
 # Retrieve active courses with user's progress
-@app.get("/courses/active", response_model=List[CourseSortDisplay])
+@app.get("/courses/active/", response_model=List[EnrolledCourseDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    progresses = db.query(Progress).filter(Enrollment.user_id == current_user.id).all()
-    courses = {progress.enrollment.course for progress in progresses}
-    return courses
+    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    enrolled_courses = (
+        db.query(Course)
+        .join(Enrollment, Enrollment.course_id == Course.id)
+        .filter(Enrollment.user_id == current_user.id)
+        .filter(Enrollment.completed_hours != 0)
+        .options(joinedload(Course.enrollments))
+        .all()
+    )
+
+    # Prepare the response by enriching the course data with enrollment-specific properties
+    response = []
+    for course in enrolled_courses:
+        for enrollment in course.enrollments:
+            course_display = EnrolledCourseDisplay.from_orm(course)
+            course_display.completed_hours = enrollment.completed_hours
+            course_display.completion_percentage = enrollment.completion_percentage
+            response.append(course_display)
+
+    return response
+    #
+    # progresses = db.query(Progress).filter(Enrollment.user_id == current_user.id).all()
+    # courses = {progress.enrollment.course for progress in progresses}
+    # return courses
 
 
 # Retrieve completed courses
-@app.get("/courses/completed", response_model=List[CourseFullDisplay])
+@app.get("/courses/completed/", response_model=List[EnrolledCourseDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    enrollments = (
-        db.query(Enrollment)
+    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    enrolled_courses = (
+        db.query(Course)
+        .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.status == "Completed")
+        .filter(Enrollment.completed_hours == 100)
+        .options(joinedload(Course.enrollments))
         .all()
     )
-    courses = [enrollment.course for enrollment in enrollments]
-    return courses
+
+    # Prepare the response by enriching the course data with enrollment-specific properties
+    response = []
+    for course in enrolled_courses:
+        for enrollment in course.enrollments:
+            course_display = EnrolledCourseDisplay.from_orm(course)
+            course_display.completed_hours = enrollment.completed_hours
+            course_display.completion_percentage = enrollment.completion_percentage
+            response.append(course_display)
+
+    return response
+
 
 
 # Retrieve a specific course by ID
-@app.get("/courses/{course_id}", response_model=CourseFullDisplay)
+@app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
 def get_course(
     course_id: int,
     db: Session = Depends(get_db),
@@ -194,7 +239,7 @@ def get_course(
     return course
 
 
-@app.put("/courses/{course_id}", response_model=CourseSortDisplay)
+@app.put("/courses/{course_id}/", response_model=CourseSortDisplay)
 def update_question(
     course_id: int,
     question_data: CourseUpdate,
@@ -222,7 +267,7 @@ def update_question(
     return course
 
 
-@app.delete("/courses/{course_id}", status_code=204)
+@app.delete("/courses/{course_id}/", status_code=204)
 def update_question(
     course_id: int,
     db: Session = Depends(get_db),

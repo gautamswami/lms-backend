@@ -112,6 +112,8 @@ class ContentDisplay(ContentBase):
     title: str
     content_type: str
     file_id: str
+    expected_time_to_complete: Optional[Union[int, float]]
+
 
 
 class QuestionBase(BaseModel_):
@@ -190,6 +192,7 @@ class CourseSortDisplay(CourseBase):
     chapters_count: Optional[int]
     feedback_count: Optional[int]
     completed_students_count: Optional[int]
+    expected_time_to_complete: Optional[int]
     average_rating: Optional[float]
 
 
@@ -213,6 +216,12 @@ class CourseUpdate(CourseCreate):
     entity: Optional[str]
     service_line_id: Optional[str]
 
+class EnrolledCourseDisplay(CourseFullDisplay):
+    completed_hours: Optional[Union[int, float]] = Field(None,
+                                                         description="Total hours completed by the user in the course")
+    completion_percentage: Optional[Union[int, float]] = Field(None,
+                                                               description="Percentage of the course completed by the user")
+
 
 # ############################################ Course ENDS HERE ####################################################
 
@@ -221,6 +230,32 @@ class DashStats(BaseModel_):
     numeric_stats: Dict[str, Any]
     details: Dict[str, Any]
 
+
+
+class CourseStats(BaseModel):
+    course_id: int
+    title: str
+    completion: Union[int,float]  # percentage of completion
+    category: str
+
+class DashStats(BaseModel):
+    completed_courses_count: int
+    active_courses_count: int
+    pending_courses_count: int
+    weekly_learning_activity: Dict[str, int]  # Days of the week as keys
+    my_progress: float
+    active_courses: List[CourseStats]
+    certificates_count: int
+
+
+class DashStatsNew(BaseModel_):
+    completed_courses_count: int
+    active_courses_count: int
+    pending_courses_count: int
+    weekly_learning_activity: Dict[str, int]  # Days of the week as keys
+    my_progress: float
+    active_courses: List[CourseStats]
+    certificates_count: int
 
 # ############################################ STATS ENDS HERE ####################################################
 
