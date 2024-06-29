@@ -1,21 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from datetime import datetime
+from sqlalchemy import text, func
+from datetime import datetime, timedelta
 
 from auth import get_current_user
 from dependencies import get_db
-from models import User, Enrollment
-from schemas import DashStats, DashInput
+from models import User, Enrollment, Progress
+from schemas import DashStats, DashInput, DashStatsNew, CourseStats
 
 app = APIRouter(prefix="/stats", tags=["stats"])
 
 
 @app.post("/dash", response_model=DashStats)
 def dash_stats(
-    dash_input: DashInput,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        dash_input: DashInput,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     # Raw SQL to get user details from email
     user_query = text(
@@ -63,7 +63,8 @@ def dash_stats(
     for enrollment in enrollments:
         status = enrollment.status
         # TODO AKASH
-        completion_percentage = db.query(Enrollment).filter(Enrollment.id == enrollment.id).one().calculated_completion_percentage
+        completion_percentage = db.query(Enrollment).filter(
+            Enrollment.id == enrollment.id).one().calculated_completion_percentage
         expected_time_to_complete = enrollment.expected_time_to_complete
         course_title = enrollment.title
         due_date = enrollment.due_date
@@ -233,3 +234,47 @@ def dash_stats(
         )
 
     return DashStats(numeric_stats=numeric_stats, details=details)
+
+
+@app.post("/dash/new", response_model=DashStatsNew)
+def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check user's role to customize data fetching
+    role = current_user.role.RoleName
+    today = datetime.now().date()
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+
+    # Calculate number of completed and in-progress courses using column properties
+    completed_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Completed").count()
+    active_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Active").count()
+    pending_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Pending").count()
+
+    # Weekly learning activity using correct join and filter
+    activity_query = (db.query(
+        func.date(Progress.completed_at).label('day'),
+        func.count('*').label('count')
+    ).join(Enrollment).filter(
+        Enrollment.user_id == current_user.id,
+        Progress.completed_at >= start_of_week,
+        Progress.completed_at <= end_of_week
+    ).group_by(func.date(Progress.completed_at)).all())
+    weekly_activity = {day.strftime('%a'): count for day, count in activity_query}
+
+    # Using column properties directly
+    # my_progress = current_user.completion_percentage  # Assuming this is calculated via User model or calculated here
+    # certificates_count = len(current_user.certificates)
+
+    # Active courses using existing relationships and properties
+    active_courses = [
+        CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
+    ]
+
+    return DashStats(
+        completed_course_count=completed_course_count,
+        active_course_count=active_course_count,
+        pending_course_count=pending_course_count,
+        weekly_learning_activity=weekly_activity,
+        my_progress=current_user.completion_percentage,
+        active_courses=active_courses,
+        certificates_count=current_user.certificates_count
+    )

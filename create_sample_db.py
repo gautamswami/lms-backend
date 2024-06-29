@@ -250,12 +250,14 @@ def create_sample_data():
             title="Python Installation",
             content_type="video",
             file_id=str(uuid.uuid4()),
+            expected_time_to_complete=134
         )
         content2 = Content(
             chapter_id=chapter1.id,
             title="Hello World",
             content_type="video",
             file_id=str(uuid.uuid4()),
+            expected_time_to_complete=105
         )
 
         db.add_all([content1, content2])
@@ -266,7 +268,7 @@ def create_sample_data():
             user_id=employee.id,
             course_id=course1.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course1.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=121),
             year=datetime.now().year,
             status="Completed",
         )
@@ -274,21 +276,21 @@ def create_sample_data():
             user_id=employee.id,
             course_id=course3.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course3.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=32),
             year=datetime.now().year,
         )
         enrollment3 = Enrollment(
             user_id=employee.id,
             course_id=course4.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course4.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=12),
             year=datetime.now().year,
         )
         enrollment4 = Enrollment(
             user_id=employee.id,
             course_id=course5.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course5.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=45),
             year=datetime.now().year,
             status="Completed",
         )
@@ -296,7 +298,7 @@ def create_sample_data():
             user_id=employee.id,
             course_id=course6.id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course6.expected_time_to_complete),
+            due_date=datetime.now() + timedelta(days=134),
             year=datetime.now().year,
         )
 
@@ -306,15 +308,15 @@ def create_sample_data():
         # Create progress
         progress1 = Progress(
             enrollment_id=enrollment1.id,
-            last_chapter_id=chapter1.id,
-            last_content_id=content1.id,
-            last_accessed=datetime.now(),
+            chapter_id=chapter1.id,
+            content_id=content1.id,
+            completed_at=datetime.now(),
         )
         progress2 = Progress(
-            enrollment_id=enrollment2.id,
-            last_chapter_id=chapter2.id,
-            last_content_id=content2.id,
-            last_accessed=datetime.now(),
+            enrollment_id=enrollment1.id,
+            chapter_id=chapter2.id,
+            content_id=content2.id,
+            completed_at=datetime.now(),
         )
 
         db.add_all([progress1, progress2])
@@ -381,7 +383,6 @@ def create_sample_data():
         # )
         # db.add(learning_path_enrollment1)
         # db.commit()
-
 
         # Create certificates
         certificate1 = Certificate(
