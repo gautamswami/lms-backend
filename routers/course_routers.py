@@ -51,7 +51,7 @@ async def get_course(course_id: int, db: Session = Depends(get_db)):
     return course
 
 
-@app.post("/courses", response_model=CourseFullDisplay)
+@app.post("/courses/", response_model=CourseFullDisplay)
 async def create_course(
         course_data: CourseCreate,  # Assume JSON data is submitted
         db: Session = Depends(get_db),
@@ -87,8 +87,9 @@ async def create_course(
             db.commit()
 
     course = db.query(Course).filter(Course.id == new_course.id).first()
-    return course
-
+    course_display = CourseFullDisplay.from_orm(course)
+    course_display.is_enrolled = False
+    return course_display
 
 @app.put("/courses/{course_id}", response_model=CourseFullDisplay)
 async def update_course(
