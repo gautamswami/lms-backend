@@ -236,7 +236,7 @@ def dash_stats(
     return DashStats(numeric_stats=numeric_stats, details=details)
 
 
-@app.post("/dash/new", response_model=DashStatsNew)
+@app.get("/dash/new", response_model=DashStatsNew)
 def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Check user's role to customize data fetching
     role = current_user.role.RoleName
