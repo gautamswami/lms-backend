@@ -4,6 +4,7 @@ from sqlalchemy import text, func
 from datetime import datetime, timedelta
 
 from auth import get_current_user
+from config import complience_total_tech_learning_target, complience_total_non_tech_learning_target
 from dependencies import get_db
 from models import User, Enrollment, Progress
 from schemas import DashStats, DashInput, DashStatsNew, CourseStats
@@ -283,5 +284,10 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
         weekly_learning_activity=weekly_activity,
         my_progress=current_user.completion_percentage,
         active_courses=active_courses,
-        certificates_count=current_user.certificates_count
+        certificates_count=current_user.certificates_count,
+        total_learning_hours=current_user.total_learning_hours,
+        total_tech_learning_hours=current_user.total_tech_learning_hours,
+        total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
+        complience_total_tech_learning_target=complience_total_tech_learning_target,
+        complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
     )
