@@ -268,8 +268,15 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
     active_courses = [
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
+    print(f"completed_course_count  : {completed_course_count}")
+    print(f"active_course_count  : {active_course_count}")
+    print(f"pending_course_count  : {pending_course_count}")
+    print(f"weekly_activity  : {weekly_activity}")
+    print(f"current_user.completion_percentage  : {current_user.completion_percentage}")
+    print(f"active_courses  : {active_courses}")
+    print(f"current_user.certificates_count  : {current_user.certificates_count}")
 
-    return DashStats(
+    return DashStatsNew(
         completed_course_count=completed_course_count,
         active_course_count=active_course_count,
         pending_course_count=pending_course_count,
