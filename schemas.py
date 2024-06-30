@@ -194,7 +194,7 @@ class CourseSortDisplay(CourseBase):
     completed_students_count: Optional[int]
     expected_time_to_complete: Optional[int]
     average_rating: Optional[float]
-    is_enrolled: Optional[bool]
+    is_enrolled: Optional[bool] = False
 
 class CourseFullDisplay(CourseSortDisplay):
     approver: Optional[UserDisplay]
