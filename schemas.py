@@ -197,6 +197,7 @@ class CourseSortDisplay(CourseBase):
     is_enrolled: Optional[bool] = False
 
 class CourseFullDisplay(CourseSortDisplay):
+    description: Optional[str]
     approver: Optional[UserDisplay]
     creator: Optional[UserDisplay]
     chapters: List[ChapterDisplay] = []
