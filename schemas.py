@@ -194,7 +194,7 @@ class CourseSortDisplay(CourseBase):
     completed_students_count: Optional[int]
     expected_time_to_complete: Optional[int]
     average_rating: Optional[float]
-
+    is_enrolled: Optional[bool]
 
 class CourseFullDisplay(CourseSortDisplay):
     approver: Optional[UserDisplay]
@@ -249,9 +249,9 @@ class DashStats(BaseModel):
 
 
 class DashStatsNew(BaseModel_):
-    completed_courses_count: int
-    active_courses_count: int
-    pending_courses_count: int
+    completed_course_count: int
+    active_course_count: int
+    pending_course_count: int
     weekly_learning_activity: Dict[str, int]  # Days of the week as keys
     my_progress: float
     active_courses: List[CourseStats]
