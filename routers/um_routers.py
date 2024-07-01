@@ -5,7 +5,7 @@ import pyotp
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi import BackgroundTasks
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import auth
 import crud
@@ -75,7 +75,7 @@ Contact us: [Support Email/Phone Number]"""
 
 @app.post("/users/forgot-password/")
 def forgot_password(
-    email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+        email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """
 
@@ -129,9 +129,9 @@ def reset_password(reset: ResetPassword, db: Session = Depends(get_db)):
 
 @app.post("/users/", response_model=UserDisplay, status_code=status.HTTP_201_CREATED)
 def create_user(
-    user: UserCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user: UserCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.get_user_by_email(db, email=user.email)
@@ -148,8 +148,8 @@ def create_user(
     "/users/", response_model=List[UserDisplay]
 )
 def get_all_user(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     users = db.query(User).all()
     return users
@@ -157,9 +157,9 @@ def get_all_user(
 
 @app.get("/users/{user_id}", response_model=UserDisplay)
 def read_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         if current_user.role_name not in ["Admin", "Super Admin"]:
@@ -177,10 +177,10 @@ def read_user(
 # noinspection PyTypeChecker
 @app.put("/users/{user_id}", response_model=UserDisplay)
 def update_user(
-    user_id: int,
-    user: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        user: UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         print(1)
@@ -199,9 +199,9 @@ def update_user(
 
 @app.delete("/users/{user_id}", response_model=UserDisplay)
 def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     try:
         db_user = crud.delete_user(db, user_id=user_id)
@@ -279,27 +279,30 @@ def delete_user(
 
 @app.get("/get_all", response_model=UM_send_all)
 def get_all(
-    db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)
 ):
     if current_user.role_name == "Super Admin":
         # Fetch all users without regard to service line if user is Super Admin
-        instructors = db.query(User).filter(User.role_name == "Instructor").all()
+        instructors = db.query(User).options(joinedload(User.team_members)).filter(User.role_name == "Instructor").all()
     else:
         # Fetch users within the same service line and for specific roles if not Super Admin
-        instructors = (
-            db.query(User)
-            .filter(
-                User.service_line_id == current_user.service_line_id,
-                User.role_name == "Instructor",
-            )
-            .all()
-        )
+        instructors = db.query(User).options(joinedload(User.team_members)).filter(
+            User.service_line_id == current_user.service_line_id, User.role_name == "Instructor").all()
+
+        # instructors = (
+        #     db.query(User)
+        #     .filter(
+        #         User.service_line_id == current_user.service_line_id,
+        #         User.role_name == "Instructor",
+        #     )
+        #     .all()
+        # )
 
     admins = db.query(User).filter(User.role_name == "Admin").all()
 
     admin_displays = [UserDisplay.from_orm(admin) for admin in admins]
     instructor_displays = [
-        UserDisplay.from_orm(instructor) for instructor in instructors
+        InstructorDisplay.from_orm(instructor) for instructor in instructors
     ]
 
     # Additional data fetches (assuming these are unchanged)
@@ -325,9 +328,9 @@ def get_all(
 
 @app.get("/counselor/{counselor_id}/team_members", response_model=List[UserTeamView])
 def get_team_members(
-    counselor_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth.get_current_user),
+        counselor_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(auth.get_current_user),
 ):
     # Fetch the counselor to validate existence and role
     if counselor_id == 0:
@@ -403,7 +406,6 @@ def get_team_members(
         )
 
     return team_member_details
-
 
 # @app.post("/users/{user_id}/profile_pic", status_code=200)
 # async def upload_profile_pic(
