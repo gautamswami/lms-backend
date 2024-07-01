@@ -239,49 +239,43 @@ def dash_stats(
 
 @app.get("/dash/new", response_model=DashStatsNew)
 def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Check user's role to customize data fetching
-    role = current_user.role.RoleName
     today = datetime.now().date()
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=6)
 
-    # Calculate number of completed and in-progress courses using column properties
+    # Define last week's time range
+    start_of_last_week = start_of_week - timedelta(days=7)
+    end_of_last_week = start_of_week - timedelta(days=1)
+
+    # Queries for current week and last week activities
+    def get_weekly_activity(start_date, end_date):
+        return (db.query(
+            func.date(Progress.completed_at).label('day'),
+            func.count('*').label('count')
+        ).join(Enrollment).filter(
+            Enrollment.user_id == current_user.id,
+            Progress.completed_at >= start_date,
+            Progress.completed_at <= end_date
+        ).group_by(func.date(Progress.completed_at)).all())
+
+    weekly_activity = {day.strftime('%a'): count for day, count in get_weekly_activity(start_of_week, end_of_week)}
+    last_weekly_activity = {day.strftime('%a'): count for day, count in get_weekly_activity(start_of_last_week, end_of_last_week)}
+
+    # Additional code for calculating other stats
     completed_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Completed").count()
     active_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Active").count()
     pending_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Pending").count()
 
-    # Weekly learning activity using correct join and filter
-    activity_query = (db.query(
-        func.date(Progress.completed_at).label('day'),
-        func.count('*').label('count')
-    ).join(Enrollment).filter(
-        Enrollment.user_id == current_user.id,
-        Progress.completed_at >= start_of_week,
-        Progress.completed_at <= end_of_week
-    ).group_by(func.date(Progress.completed_at)).all())
-    weekly_activity = {day.strftime('%a'): count for day, count in activity_query}
-
-    # Using column properties directly
-    # my_progress = current_user.completion_percentage  # Assuming this is calculated via User model or calculated here
-    # certificates_count = len(current_user.certificates)
-
-    # Active courses using existing relationships and properties
     active_courses = [
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
-    print(f"completed_course_count  : {completed_course_count}")
-    print(f"active_course_count  : {active_course_count}")
-    print(f"pending_course_count  : {pending_course_count}")
-    print(f"weekly_activity  : {weekly_activity}")
-    print(f"current_user.completion_percentage  : {current_user.completion_percentage}")
-    print(f"active_courses  : {active_courses}")
-    print(f"current_user.certificates_count  : {current_user.certificates_count}")
 
     return DashStatsNew(
         completed_course_count=completed_course_count,
         active_course_count=active_course_count,
         pending_course_count=pending_course_count,
         weekly_learning_activity=weekly_activity,
+        last_weekly_learning_activity=last_weekly_activity,
         my_progress=current_user.completion_percentage,
         active_courses=active_courses,
         certificates_count=current_user.certificates_count,

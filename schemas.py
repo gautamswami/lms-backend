@@ -254,6 +254,7 @@ class DashStatsNew(BaseModel_):
     active_course_count: int
     pending_course_count: int
     weekly_learning_activity: Dict[str, int]  # Days of the week as keys
+    last_weekly_learning_activity: Dict[str, int]
     my_progress: float
     total_learning_hours: float
     total_tech_learning_hours: float
