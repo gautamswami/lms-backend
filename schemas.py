@@ -22,7 +22,7 @@ class UserBase(BaseModel_):
     designation: str
     service_line_id: str
     external_role_name: str
-    entity: Optional[str]
+    entity: Optional[Any]
 
 
 class UserTeamView(UserBase):

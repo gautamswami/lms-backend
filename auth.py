@@ -23,7 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 async def get_current_user(
     authorization: Annotated[
         Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdXBlcmFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzIwMDc2MjA2fQ.mmjAa8qFjWFaB2fYHouktyMFOvtNiIBooH1Ew49gjcM",
+    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdXBlcmFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzIwNzIyMDAzfQ.2jTugKmyRBCsh895XW_mVG0VR43IMw1Au30O8Y66xjY",
     db: Session = Depends(get_db),
 ):
     credentials_exception = HTTPException(

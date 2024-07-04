@@ -389,6 +389,7 @@ def get_team_members(
                 designation=member.designation,
                 service_line_id=member.service_line_id,
                 external_role_name=member.external_role_name,
+                entity=member.entity,
                 number_of_trainings_completed=len(completed_trainings),
                 hours_of_training_completed=completed_hours,
                 hours_of_non_technical_training_completed=non_technical_hours,
