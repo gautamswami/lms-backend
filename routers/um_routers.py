@@ -183,8 +183,8 @@ def update_user(
         current_user: User = Depends(auth.get_current_user),
 ):
     try:
-        update_data = user.dict(exclude_unset=True)
-        db_user = crud.update_user(db, user_id=user_id, user=update_data)
+        # update_data = user.dict(exclude_unset=True)
+        db_user = crud.update_user(db, user_id=user_id, user=user)
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
         return db_user
