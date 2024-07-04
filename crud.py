@@ -64,14 +64,8 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
         try:
-            if db_user.dp_file_id:
-                db_user.dp_file_id = user["dp_file_id"]
-            if db_user.email:
-                db_user.email = user["email"]
-            if db_user.designation:
-                db_user.designation = user["designation"]
-            if db_user.service_line_id:
-                db_user.service_line_id = user["service_line_id"]
+            for var, value in user.dict().items():
+                setattr(db_user, var, value)
             db.commit()
             db.refresh(db_user)
         except Exception as e:

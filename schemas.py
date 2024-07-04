@@ -75,17 +75,17 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel_):
     # Changed to Optional if updating isn't mandatory
-    email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role_name: Optional[str] = None
+    employee_id: Optional[str] = None
+    external_role_name: Optional[str] = None
     dp_file_id: Optional[str] = None
     designation: Optional[str] = None
     service_line_id: Optional[str] = None
-    compliance_hours: Optional[int] = (
-        None  # Added to update the compliance hours per user
-    )
-
-    class Config:
-        from_attributes = True
-
+    counselor_id: Optional[int] = None
+    entity: Optional[str] = None
 
 # ############################################ USER ENDS HERE ####################################################
 
