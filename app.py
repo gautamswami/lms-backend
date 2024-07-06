@@ -149,6 +149,7 @@ async def startup_event():
         designation="Manager",
         service_line_id=service_lines[0].name,
         external_role_name="Assurance",
+        entity="PIERAG"
     )
     from datetime import datetime
 
