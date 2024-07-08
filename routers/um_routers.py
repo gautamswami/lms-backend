@@ -175,7 +175,7 @@ def read_user(
 
 
 # noinspection PyTypeChecker
-@app.put("/users/{user_id}", response_model=UserDisplay)
+@app.put("/users/{user_id}/", response_model=UserDisplay)
 def update_user(
         user_id: int,
         user: UserUpdate,

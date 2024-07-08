@@ -65,7 +65,8 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
     if db_user:
         try:
             for var, value in user.dict().items():
-                setattr(db_user, var, value)
+                if value:
+                    setattr(db_user, var, value)
             db.commit()
             db.refresh(db_user)
         except Exception as e:
