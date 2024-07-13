@@ -18,7 +18,7 @@ app = APIRouter(tags=['learning_path'])
 
 # Create a new learning_path
 
-@app.post("/learning_path", response_model=LearningPathDisplay)
+@app.post("/learning_path/", response_model=LearningPathDisplay)
 def create_learning_path(learning_path_data: LearningPathCreate, db: Session = Depends(get_db),
                          current_user: User = Depends(get_current_user)):
     new_path = LearningPath(
@@ -36,14 +36,14 @@ def create_learning_path(learning_path_data: LearningPathCreate, db: Session = D
 
 
 # Retrieve all learning_path
-@app.get("/learning_path", response_model=List[LearningPathDisplay])
+@app.get("/learning_path/", response_model=List[LearningPathDisplay])
 def get_learning_path(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     paths = db.query(LearningPath).all()
     return paths
 
 
 # Retrieve learning_path the current user is enrolled in
-@app.get("/learning_path/enrolled", response_model=List[LearningPathDisplay])
+@app.get("/learning_path/enrolled/", response_model=List[LearningPathDisplay])
 def get_enrolled_learning_paths(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     enrolled_paths = db.query(LearningPath).join(LearningPathEnrollment).filter(
         LearningPathEnrollment.user_id == current_user.id).all()
@@ -51,7 +51,7 @@ def get_enrolled_learning_paths(db: Session = Depends(get_db), current_user: Use
 
 
 # Retrieve completed learning_path
-@app.get("/learning_path/completed", response_model=List[LearningPathDisplay])
+@app.get("/learning_path/completed/", response_model=List[LearningPathDisplay])
 def get_completed_learning_paths(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     completed_paths = db.query(LearningPath).join(LearningPathEnrollment).filter(
         LearningPathEnrollment.user_id == current_user.id, LearningPathEnrollment.status == "Completed").all()
@@ -59,7 +59,7 @@ def get_completed_learning_paths(db: Session = Depends(get_db), current_user: Us
 
 
 # Retrieve a specific learning_path by ID
-@app.get("/learning_path/{learning_path_id}", response_model=LearningPathDisplay)
+@app.get("/learning_path/{learning_path_id}/", response_model=LearningPathDisplay)
 def get_learning_path_by_id(learning_path_id: int, db: Session = Depends(get_db),
                             current_user: User = Depends(get_current_user)):
     learning_path = db.query(LearningPath).filter(LearningPath.id == learning_path_id).first()
@@ -68,7 +68,7 @@ def get_learning_path_by_id(learning_path_id: int, db: Session = Depends(get_db)
     return learning_path
 
 
-@app.put("/learning_path/{learning_path_id}", response_model=LearningPathDisplay)
+@app.put("/learning_path/{learning_path_id}/", response_model=LearningPathDisplay)
 def update_learning_path(learning_path_id: int,
                          learning_path_data: CourseUpdate,
                          db: Session = Depends(get_db),
@@ -81,7 +81,7 @@ def update_learning_path(learning_path_id: int,
     return path
 
 
-@app.delete("/learning_path/{learning_path_id}", status_code=204)
+@app.delete("/learning_path/{learning_path_id}/", status_code=204)
 def update_question(learning_path_id: int, db: Session = Depends(get_db),
                     current_user: User = Depends(get_current_user)):
     # DELETE learning_path by id only if there is no Enrollments, delete LearningPathDisplay
