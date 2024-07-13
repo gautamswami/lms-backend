@@ -266,6 +266,16 @@ class DashStatsNew(BaseModel_):
     active_courses: List[CourseStats]
     certificates_count: int
 
+class InstructorDashStatsNew(DashStatsNew):
+    total_users_count:  int = 0
+    total_courses_count: int = 0
+    approval_pending_courses_count: int = 0
+    approved_courses_count: int = 0
+
+class AdminDashStatsNew(InstructorDashStatsNew):
+    total_learning_path_count: int = 0
+    approval_pending_external_courses_count: int = 0
+
 
 # ############################################ STATS ENDS HERE ####################################################
 

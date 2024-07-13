@@ -1,3 +1,5 @@
+from typing import Union
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
@@ -6,8 +8,8 @@ from datetime import datetime, timedelta
 from auth import get_current_user
 from config import complience_total_tech_learning_target, complience_total_non_tech_learning_target
 from dependencies import get_db
-from models import User, Enrollment, Progress
-from schemas import DashStats, DashInput, DashStatsNew, CourseStats
+from models import User, Enrollment, Progress, Course, LearningPath, ExternalCertification
+from schemas import DashStats, DashInput, DashStatsNew, CourseStats, InstructorDashStatsNew, AdminDashStatsNew
 
 app = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -237,7 +239,9 @@ def dash_stats(
     return DashStats(numeric_stats=numeric_stats, details=details)
 
 
-@app.get("/dash/new", response_model=DashStatsNew)
+@app.get("/dash/new",
+         response_model=Union[DashStatsNew, InstructorDashStatsNew, AdminDashStatsNew],
+         )
 def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     today = datetime.now().date()
     start_of_week = today - timedelta(days=today.weekday())
@@ -259,7 +263,8 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
         ).group_by(func.date(Progress.completed_at)).all())
 
     weekly_activity = {day.strftime('%a'): count for day, count in get_weekly_activity(start_of_week, end_of_week)}
-    last_weekly_activity = {day.strftime('%a'): count for day, count in get_weekly_activity(start_of_last_week, end_of_last_week)}
+    last_weekly_activity = {day.strftime('%a'): count for day, count in
+                            get_weekly_activity(start_of_last_week, end_of_last_week)}
 
     # Additional code for calculating other stats
     completed_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Completed").count()
@@ -269,19 +274,80 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
     active_courses = [
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
+    print(current_user.role_name)
+    if current_user.role_name == 'Employee':
+        return DashStatsNew(
+            completed_course_count=completed_course_count,
+            active_course_count=active_course_count,
+            pending_course_count=pending_course_count,
+            weekly_learning_activity=weekly_activity,
+            last_weekly_learning_activity=last_weekly_activity,
+            my_progress=current_user.completion_percentage,
+            active_courses=active_courses,
+            certificates_count=current_user.certificates_count,
+            total_learning_hours=current_user.total_learning_hours,
+            total_tech_learning_hours=current_user.total_tech_learning_hours,
+            total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
+            complience_total_tech_learning_target=complience_total_tech_learning_target,
+            complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
+        )
+    elif current_user.role_name == 'Instructor':
+        total_users_count = db.query(User).filter_by(counselor_id=current_user.id).count()
+        total_courses_count = db.query(Course).count()
+        approval_pending_courses_count = db.query(Course).filter_by(created_by=current_user.id, status="approval pending").count()
+        approved_courses_count = db.query(Course).filter_by(created_by=current_user.id, status="approve").count()
 
-    return DashStatsNew(
-        completed_course_count=completed_course_count,
-        active_course_count=active_course_count,
-        pending_course_count=pending_course_count,
-        weekly_learning_activity=weekly_activity,
-        last_weekly_learning_activity=last_weekly_activity,
-        my_progress=current_user.completion_percentage,
-        active_courses=active_courses,
-        certificates_count=current_user.certificates_count,
-        total_learning_hours=current_user.total_learning_hours,
-        total_tech_learning_hours=current_user.total_tech_learning_hours,
-        total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
-        complience_total_tech_learning_target=complience_total_tech_learning_target,
-        complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
-    )
+        return InstructorDashStatsNew(
+            total_users_count=total_users_count,
+            total_courses_count=total_courses_count,
+            approval_pending_courses_count=approval_pending_courses_count,
+            approved_courses_count=approved_courses_count,
+            completed_course_count=completed_course_count,
+            active_course_count=active_course_count,
+            pending_course_count=pending_course_count,
+            weekly_learning_activity=weekly_activity,
+            last_weekly_learning_activity=last_weekly_activity,
+            my_progress=current_user.completion_percentage,
+            active_courses=active_courses,
+            certificates_count=current_user.certificates_count,
+            total_learning_hours=current_user.total_learning_hours,
+            total_tech_learning_hours=current_user.total_tech_learning_hours,
+            total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
+            complience_total_tech_learning_target=complience_total_tech_learning_target,
+            complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
+        )
+    else:
+        print("inside this")
+        total_users_count = db.query(User).filter_by(service_line_id=current_user.service_line_id).count()
+        total_courses_count = db.query(Course).count()
+        approval_pending_external_courses_count = (
+            db.query(ExternalCertification)
+            .join(User, ExternalCertification.uploaded_by_id == User.id)
+            .filter(User.service_line_id == current_user.service_line_id, ExternalCertification.status == "pending")
+            .count()
+        )
+        approval_pending_courses_count = db.query(Course).filter_by(service_line_id=current_user.service_line_id, status="approval pending").count()
+        approved_courses_count = db.query(Course).filter_by(service_line_id=current_user.service_line_id, status="approve").count()
+        total_learning_path_count = db.query(LearningPath).filter_by().count()
+
+        return AdminDashStatsNew(
+            total_users_count=total_users_count,
+            total_courses_count=total_courses_count,
+            approval_pending_external_courses_count=approval_pending_external_courses_count,
+            approval_pending_courses_count=approval_pending_courses_count,
+            approved_courses_count=approved_courses_count,
+            total_learning_path_count=total_learning_path_count,
+            completed_course_count=completed_course_count,
+            active_course_count=active_course_count,
+            pending_course_count=pending_course_count,
+            weekly_learning_activity=weekly_activity,
+            last_weekly_learning_activity=last_weekly_activity,
+            my_progress=current_user.completion_percentage,
+            active_courses=active_courses,
+            certificates_count=current_user.certificates_count,
+            total_learning_hours=current_user.total_learning_hours,
+            total_tech_learning_hours=current_user.total_tech_learning_hours,
+            total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
+            complience_total_tech_learning_target=complience_total_tech_learning_target,
+            complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
+        )
