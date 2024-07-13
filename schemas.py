@@ -14,6 +14,7 @@ class BaseModel_(BaseModel):
 
 
 class UserBase(BaseModel_):
+    dp_file_id: Optional[str]
     first_name: str
     last_name: str
     email: EmailStr
