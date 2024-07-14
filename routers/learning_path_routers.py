@@ -93,7 +93,6 @@ def update_question(learning_path_id: int, db: Session = Depends(get_db),
     return Response(status_code=204)
 
 
-# Assign users to a learning path
 @app.post("/learning_path/assign/", status_code=201)
 def assign_users_to_learning_path(request: AssignLearningPath,
                                   db: Session = Depends(get_db),
