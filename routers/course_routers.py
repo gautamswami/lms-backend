@@ -135,17 +135,13 @@ def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_
     courses = (
         db.query(Course, exists().where(Course.id == subquery.c.course_id).correlate(Course))
         .options(joinedload(Course.approver))
-        .options(joinedload(Course.creator))
         .all()
     )
-
-    # Map the results to CourseSortDisplay, adding the is_enrolled flag
-    result = [
-        CourseSortDisplay(
-            **course.__dict__,
-            is_enrolled=is_enrolled,
-        ) for course, is_enrolled in courses
-    ]
+    result = []
+    for course, is_enrolled in courses:
+        course_ =  CourseSortDisplay.from_orm(course)
+        course_.is_enrolled = is_enrolled
+        result.append(course_)
 
     return result
 
@@ -161,7 +157,6 @@ def get_courses(
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
         .options(joinedload(Course.enrollments))
-        .options(joinedload(Course.creator))
         .all()
     )
 
@@ -189,7 +184,6 @@ def get_courses(
         .filter(Enrollment.user_id == current_user.id)
         .filter(Enrollment.completed_hours != 0)
         .options(joinedload(Course.enrollments))
-        .options(joinedload(Course.creator))
         .all()
     )
 
@@ -219,8 +213,7 @@ def get_courses(
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.completed_hours == 100)
-        .options(joinedload(Course.creator))
+        .filter(Enrollment.calculated_completion_percentage == 100)
         .options(joinedload(Course.enrollments))
         .all()
     )
@@ -241,9 +234,6 @@ def get_courses(
 async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
     course = (db.query(Course)
-              # .options(joinedload(Course.approver))
-              # .options(joinedload(Course.creator))
-              # .options(joinedload(Course.chapters))
               .filter(Course.id == course_id).first())
 
     if not course:
