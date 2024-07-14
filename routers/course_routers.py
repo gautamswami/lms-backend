@@ -179,6 +179,7 @@ def get_courses(
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
         .options(joinedload(Course.enrollments))
+        .options(joinedload(Course.creator))
         .all()
     )
 
@@ -206,6 +207,7 @@ def get_courses(
         .filter(Enrollment.user_id == current_user.id)
         .filter(Enrollment.completed_hours != 0)
         .options(joinedload(Course.enrollments))
+        .options(joinedload(Course.creator))
         .all()
     )
 
@@ -236,6 +238,7 @@ def get_courses(
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
         .filter(Enrollment.completed_hours == 100)
+        .options(joinedload(Course.creator))
         .options(joinedload(Course.enrollments))
         .all()
     )
@@ -252,17 +255,17 @@ def get_courses(
     return response
 
 
-# Retrieve a specific course by ID
-@app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
-def get_course(
-        course_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-):
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-    return course
+# # Retrieve a specific course by ID
+# @app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
+# def get_course(
+#         course_id: int,
+#         db: Session = Depends(get_db),
+#         current_user: User = Depends(get_current_user),
+# ):
+#     course = db.query(Course).filter(Course.id == course_id).first()
+#     if not course:
+#         raise HTTPException(status_code=404, detail="Course not found")
+#     return course
 
 
 @app.put("/courses/{course_id}/", response_model=CourseSortDisplay)
