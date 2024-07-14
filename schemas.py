@@ -407,7 +407,6 @@ class FeedbackDisplay(FeedbackCreate):
 
 class EnrollmentRequest(BaseModel_):
     course_id: Optional[int]
-    learning_path_id: Optional[int]
     user_ids: list[int]  # List of user IDs to enroll
 
     class Config:
