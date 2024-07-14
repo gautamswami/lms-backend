@@ -150,8 +150,25 @@ def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
 def enroll_users_lp(learning_path_id: int, user_id: int, due_date: datetime, db: Session) -> dict:
     lp = db.query(LearningPath).filter(LearningPath.id == learning_path_id).first()
     if not lp:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Learning path not found")
 
+    # Check if the user is already enrolled in the learning path
+    existing_enrollment = db.query(LearningPathEnrollment).filter_by(
+        user_id=user_id,
+        learning_path_id=learning_path_id
+    ).first()
+
+    if existing_enrollment:
+        # Optionally, update the existing enrollment's due_date or other fields if necessary
+        existing_enrollment.due_date = due_date
+        db.commit()
+        return {
+            "message": "User already enrolled, updated due date",
+            "learning_path_id": learning_path_id,
+            "user_id": user_id,
+        }
+
+    # If no existing enrollment, add a new one
     enrollment = LearningPathEnrollment(
         user_id=user_id,
         learning_path_id=learning_path_id,
@@ -163,7 +180,7 @@ def enroll_users_lp(learning_path_id: int, user_id: int, due_date: datetime, db:
     db.add(enrollment)
     db.commit()
     return {
-        "message": "Users successfully enrolled",
-        "course_id": learning_path_id,
-        "user_ids": user_id,
+        "message": "User successfully enrolled",
+        "learning_path_id": learning_path_id,
+        "user_id": user_id,
     }
