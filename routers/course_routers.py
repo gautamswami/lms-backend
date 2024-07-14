@@ -241,9 +241,9 @@ def get_courses(
 async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
     course = (db.query(Course)
-              .options(joinedload(Course.approver))
-              .options(joinedload(Course.creator))
-              .options(joinedload(Course.chapters))
+              # .options(joinedload(Course.approver))
+              # .options(joinedload(Course.creator))
+              # .options(joinedload(Course.chapters))
               .filter(Course.id == course_id).first())
 
     if not course:
@@ -254,10 +254,8 @@ async def get_course(course_id: int, db: Session = Depends(get_db), current_user
     ).count() > 0
     # Assuming CourseFullDisplay includes all necessary data
     # Map the result to CourseFullDisplay, including the is_enrolled flag
-    course_display = CourseFullDisplay(
-        **course.__dict__,
-        is_enrolled=is_enrolled
-    )
+    course_display = CourseFullDisplay.from_orm(course)
+    course_display.is_enrolled = is_enrolled
     return course_display
 
 # # Retrieve a specific course by ID
