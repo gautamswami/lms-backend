@@ -153,6 +153,7 @@ def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_
     courses = (
         db.query(Course, exists().where(Course.id == subquery.c.course_id).correlate(Course))
         .options(joinedload(Course.approver))
+        .options(joinedload(Course.creator))
         .all()
     )
 
