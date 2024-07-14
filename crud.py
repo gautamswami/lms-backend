@@ -130,11 +130,19 @@ def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
         raise HTTPException(status_code=404, detail="Course not found")
 
     for user_id in user_ids:
+        existing_enrollment = db.query(Enrollment).filter_by(
+            user_id=user_id,
+            course_id=course_id
+        ).first()
+        if existing_enrollment:
+            # Optionally, update the existing enrollment's due_date or other fields if necessary
+            # existing_enrollment.due_date = due_date
+            continue  # Skip adding a new enrollment if one already exists
+
         enrollment = Enrollment(
             user_id=user_id,
             course_id=course_id,
             enroll_date=datetime.now(),
-            due_date=datetime.now() + timedelta(days=course.expected_time_to_complete),
             year=datetime.now().year,
             status="Enrolled",
         )
