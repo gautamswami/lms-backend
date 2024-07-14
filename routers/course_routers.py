@@ -243,6 +243,7 @@ async def get_course(course_id: int, db: Session = Depends(get_db), current_user
     course = (db.query(Course)
               .options(joinedload(Course.approver))
               .options(joinedload(Course.creator))
+              .options(joinedload(Course.chapters))
               .filter(Course.id == course_id).first())
 
     if not course:
