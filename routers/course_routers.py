@@ -39,7 +39,7 @@ app = APIRouter(tags=["course"])
 # ------------------- Course Operations -------------------
 
 
-@app.get("/courses/{course_id}", response_model=CourseFullDisplay)
+@app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
 async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -99,7 +99,7 @@ async def create_course(
     course_display.is_enrolled = False
     return course_display
 
-@app.put("/courses/{course_id}", response_model=CourseFullDisplay)
+@app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
 async def update_course(
         course_id: int,
         updated_course_data: CourseCreate,  # Assume JSON data for the entire course including chapters and quizzes
