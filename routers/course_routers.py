@@ -42,7 +42,10 @@ app = APIRouter(tags=["course"])
 @app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
 async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
-    course = db.query(Course).filter(Course.id == course_id).first()
+    course = (db.query(Course)
+              .options(joinedload(Course.approver))
+              .options(joinedload(Course.creator))
+              .filter(Course.id == course_id).first())
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -98,6 +101,7 @@ async def create_course(
     course_display = CourseFullDisplay.from_orm(course)
     course_display.is_enrolled = False
     return course_display
+
 
 @app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
 async def update_course(
