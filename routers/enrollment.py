@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from auth import get_current_user
 from crud import enroll_users
 from dependencies import get_db
-from models import Course, User, Enrollment, Progress, Content, Certificate
+from models import Course, User, Enrollment, Progress, Content, Certificate, Chapter
 from schemas import (EnrollmentRequest, EnrolledCourseDisplay)
 
 app = APIRouter(tags=['course', 'enrollment'])
@@ -94,7 +94,7 @@ async def get_enrolled_courses(db: Session = Depends(get_db), current_user: User
 
 
 
-@app.put("/mark_as_done/{content_id}")
+@app.put("/mark_as_done/{content_id}/")
 async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         # Fetch content and its related chapter and check for user enrollment in one query
@@ -103,11 +103,16 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
             raise HTTPException(status_code=404, detail="Content not found")
 
         # Check if the current user is enrolled in the course related to the content
-        enrollment = db.query(Enrollment).filter(
-            Enrollment.user_id == current_user.id,
-            Enrollment.course_id == content.chapter.course_id
-        ).one_or_none()
-
+        enrollment = (
+            db.query(Enrollment)
+            .join(Chapter, Chapter.course_id == Enrollment.course_id)
+            .join(Content, Content.chapter_id == Chapter.id)
+            .filter(
+                Enrollment.user_id == current_user.id,
+                Content.id == content.id
+            )
+            .one_or_none()
+        )
         if not enrollment:
             raise HTTPException(status_code=404, detail="Enrollment not found")
 

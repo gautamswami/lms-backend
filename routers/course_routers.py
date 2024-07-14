@@ -40,15 +40,23 @@ app = APIRouter(tags=["course"])
 
 
 @app.get("/courses/{course_id}", response_model=CourseFullDisplay)
-async def get_course(course_id: int, db: Session = Depends(get_db)):
+async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
     course = db.query(Course).filter(Course.id == course_id).first()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-
+    is_enrolled = db.query(Enrollment).filter(
+        Enrollment.user_id == current_user.id,
+        Enrollment.course_id == course_id
+    ).count() > 0
     # Assuming CourseFullDisplay includes all necessary data
-    return course
+    # Map the result to CourseFullDisplay, including the is_enrolled flag
+    course_display = CourseFullDisplay(
+        **course.__dict__,
+        is_enrolled=is_enrolled
+    )
+    return course_display
 
 
 @app.post("/courses/", response_model=CourseFullDisplay)

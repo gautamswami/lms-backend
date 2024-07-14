@@ -197,11 +197,11 @@ class CourseSortDisplay(CourseBase):
     expected_time_to_complete: Optional[int]
     average_rating: Optional[float]
     is_enrolled: Optional[bool] = False
+    creator: Optional[UserDisplay]
 
 class CourseFullDisplay(CourseSortDisplay):
     description: Optional[str]
     approver: Optional[UserDisplay]
-    creator: Optional[UserDisplay]
     chapters: List[ChapterDisplay] = []
     questions: List[QuestionDisplay] = []
 
@@ -407,7 +407,6 @@ class FeedbackDisplay(FeedbackCreate):
 
 class EnrollmentRequest(BaseModel_):
     course_id: Optional[int]
-    learning_path_id: Optional[int]
     user_ids: list[int]  # List of user IDs to enroll
 
     class Config:
