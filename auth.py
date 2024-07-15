@@ -23,7 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 async def get_current_user(
     authorization: Annotated[
         Union[str, None], Header()
-    ] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdXBlcmFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzIwNzIyMDAzfQ.2jTugKmyRBCsh895XW_mVG0VR43IMw1Au30O8Y66xjY",
+    ],
     db: Session = Depends(get_db),
 ):
     credentials_exception = HTTPException(
@@ -32,10 +32,10 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        # access_token = authorization.replace("Bearer ", "")
-        # payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        # username: str = payload.get("sub")
-        username: str = "admin@example.com"
+        access_token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        # username: str = "admin@example.com"
         if username is None:
             raise credentials_exception
     except JWTError:
