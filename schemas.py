@@ -89,6 +89,7 @@ class UserUpdate(BaseModel_):
     counselor_id: Optional[int] = None
     entity: Optional[str] = None
 
+
 # ############################################ USER ENDS HERE ####################################################
 
 
@@ -115,7 +116,6 @@ class ContentDisplay(ContentBase):
     content_type: str
     file_id: str
     expected_time_to_complete: Optional[Union[int, float]]
-
 
 
 class QuestionBase(BaseModel_):
@@ -199,6 +199,7 @@ class CourseSortDisplay(CourseBase):
     is_enrolled: Optional[bool] = False
     creator: Optional[UserDisplay]
 
+
 class CourseFullDisplay(CourseSortDisplay):
     description: Optional[str]
     approver: Optional[UserDisplay]
@@ -219,11 +220,14 @@ class CourseUpdate(CourseCreate):
     entity: Optional[str]
     service_line_id: Optional[str]
 
+
 class EnrolledCourseDisplay(CourseFullDisplay):
-    completed_hours: Optional[Union[int, float]] = Field(None,
-                                                         description="Total hours completed by the user in the course")
-    completion_percentage: Optional[Union[int, float]] = Field(None,
-                                                               description="Percentage of the course completed by the user")
+    completed_hours: Optional[Union[int, float]] = Field(
+        None, description="Total hours completed by the user in the course"
+    )
+    completion_percentage: Optional[Union[int, float]] = Field(
+        None, description="Percentage of the course completed by the user"
+    )
 
 
 # ############################################ Course ENDS HERE ####################################################
@@ -234,12 +238,12 @@ class DashStats(BaseModel_):
     details: Dict[str, Any]
 
 
-
 class CourseStats(BaseModel):
     course_id: int
     title: str
-    completion: Union[int,float]  # percentage of completion
+    completion: Union[int, float]  # percentage of completion
     category: str
+
 
 class DashStats(BaseModel):
     completed_courses_count: int
@@ -267,11 +271,13 @@ class DashStatsNew(BaseModel_):
     active_courses: List[CourseStats]
     certificates_count: int
 
+
 class InstructorDashStatsNew(DashStatsNew):
-    total_users_count:  int = 0
+    total_users_count: int = 0
     total_courses_count: int = 0
     approval_pending_courses_count: int = 0
     approved_courses_count: int = 0
+
 
 class AdminDashStatsNew(InstructorDashStatsNew):
     total_learning_path_count: int = 0
@@ -580,3 +586,10 @@ class QuizCompletionResponse(BaseModel_):
 
 class StatusUpdate(BaseModel_):
     status_update: bool
+
+
+class EmailNotification(BaseModel_):
+    from_name: str
+    to_email: str
+    subject: str
+    body: str
