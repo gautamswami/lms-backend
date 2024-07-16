@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 # Import local modules
 from auth import get_current_user
-from crud import enroll_users
+from crud import enroll_users, get_completed_content_ids
 from dependencies import get_db
 from models import Course, User, Enrollment, Progress, Content, Certificate, Chapter
 from schemas import (EnrollmentRequest, EnrolledCourseDisplay)
@@ -166,25 +166,17 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/content_status/{content_id}")
-async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@app.get("/content_status/{chapter_id}", response_model=[int])
+async def mark_as_done(chapter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         # Query for existing progress that matches the content_id and the current user
-        progress = (db.query(Progress)
-                    .join(Enrollment, Progress.enrollment_id == Enrollment.id)
-                    .filter(Progress.content_id == content_id, Enrollment.user_id == current_user.id)
-                    .one_or_none())
-
-
-        if progress:
-            return True
-        else:
-            return False
-
+        completed_content_ids = get_completed_content_ids(current_user.id, chapter_id, db)
+        return completed_content_ids
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
 
