@@ -1,3 +1,5 @@
+from datetime import datetime
+from operator import and_
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -94,6 +96,7 @@ async def get_enrolled_courses(db: Session = Depends(get_db), current_user: User
 
 
 
+
 @app.put("/mark_as_done/{content_id}/")
 async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
@@ -120,7 +123,7 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
         progress = db.query(Progress).filter(
             Progress.enrollment_id == enrollment.id,
             Progress.content_id == content_id,
-            Progress.chapter_id == content.chapter.chapter_id  # Ensure chapter_id is correct in your model
+            Progress.chapter_id == content.chapter_id  # Ensure chapter_id is correct in your model
         ).one_or_none()
 
         if not progress:
@@ -128,17 +131,28 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
                 enrollment_id=enrollment.id,
                 chapter_id=content.chapter_id,
                 content_id=content_id,
-                completed_at=func.now()
+                completed_at=datetime.now()
             )
             db.add(progress)
         else:
-            progress.completed_at = func.now()
+            progress.completed_at = datetime.now()
 
         # Check if all contents in the course are completed to update the status
-        if not db.query(Content).filter(
-            Content.chapter.has(course_id=enrollment.course_id),
-            ~Content.progress.any(enrollment_id=enrollment.id)
-        ).first():
+        remaining_contents = (
+            db.query(Content)
+            .join(Chapter)
+            .outerjoin(Progress, and_(
+                Progress.content_id == Content.id,
+                Progress.enrollment_id == enrollment.id
+            ))
+            .filter(
+                Chapter.course_id == enrollment.course_id,
+                Progress.completed_at.is_(None)
+            )
+            .count()
+        )
+
+        if remaining_contents == 0:
             enrollment.status = 'Completed'
             db.add(Certificate(user_id=current_user.id, course_id=enrollment.course_id))
 
@@ -151,7 +165,6 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.put("/content_status/{content_id}")
 async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
