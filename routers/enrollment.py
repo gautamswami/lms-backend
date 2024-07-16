@@ -166,7 +166,7 @@ async def mark_as_done(content_id: int, db: Session = Depends(get_db), current_u
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/content_status/{chapter_id}", response_model=[int])
+@app.get("/content_status/{chapter_id}", response_model=List[int])
 async def mark_as_done(chapter_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         # Query for existing progress that matches the content_id and the current user
