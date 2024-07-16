@@ -262,9 +262,12 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
             Progress.completed_at <= end_date
         ).group_by(func.date(Progress.completed_at)).all())
 
-    weekly_activity = {day.strftime('%a'): count for day, count in get_weekly_activity(start_of_week, end_of_week)}
-    last_weekly_activity = {day.strftime('%a'): count for day, count in
-                            get_weekly_activity(start_of_last_week, end_of_last_week)}
+    weekly_activity_data = get_weekly_activity(start_of_week, end_of_week)
+    last_weekly_activity_data = get_weekly_activity(start_of_last_week, end_of_last_week)
+
+    # Convert the query results to dictionaries
+    weekly_activity = {datetime.strptime(day, '%Y-%m-%d').strftime('%a'): count for day, count in weekly_activity_data}
+    last_weekly_activity = {datetime.strptime(day, '%Y-%m-%d').strftime('%a'): count for day, count in last_weekly_activity_data}
 
     # Additional code for calculating other stats
     completed_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Completed").count()
@@ -274,6 +277,7 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
     active_courses = [
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
+
     print(current_user.role_name)
     if current_user.role_name == 'Employee':
         return DashStatsNew(
