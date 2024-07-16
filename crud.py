@@ -192,3 +192,17 @@ def enroll_users_lp(learning_path_id: int, user_id: int, due_date: datetime, db:
         "learning_path_id": learning_path_id,
         "user_id": user_id,
     }
+
+
+def get_completed_content_ids(user_id: int, chapter_id: int, db: Session):
+    # Join the Progress and Enrollment tables, filter by user_id and chapter_id
+    completed_contents = (
+        db.query(Content.id)
+        .join(Progress, Progress.content_id == Content.id)
+        .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+        .filter(Enrollment.user_id == user_id, Progress.chapter_id == chapter_id)
+        .all()
+    )
+    # Extract the content IDs from the result
+    completed_content_ids = [content_id for content_id, in completed_contents]
+    return completed_content_ids
