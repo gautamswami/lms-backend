@@ -156,6 +156,7 @@ def get_courses(
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
+        .filter(Enrollment.completed_hours == 0)
         .options(joinedload(Course.enrollments))
         .all()
     )
@@ -230,7 +231,7 @@ def get_courses(
     return response
 
 
-@app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
+@app.get("/courses/{course_id}/", response_model=EnrolledCourseDisplay)
 async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Retrieve the course with all related data like chapters and quizzes if needed
     course = (db.query(Course)
@@ -241,11 +242,14 @@ async def get_course(course_id: int, db: Session = Depends(get_db), current_user
     is_enrolled = db.query(Enrollment).filter(
         Enrollment.user_id == current_user.id,
         Enrollment.course_id == course_id
-    ).count() > 0
+    ).one_or_none()
     # Assuming CourseFullDisplay includes all necessary data
     # Map the result to CourseFullDisplay, including the is_enrolled flag
-    course_display = CourseFullDisplay.from_orm(course)
-    course_display.is_enrolled = is_enrolled
+    course_display = EnrolledCourseDisplay.from_orm(course)
+    if is_enrolled:
+        course_display.is_enrolled = True
+        course_display.completed_hours = is_enrolled.completed_hours
+        course_display.completion_percentage = is_enrolled.completion_percentage
     return course_display
 
 # # Retrieve a specific course by ID
