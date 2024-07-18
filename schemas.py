@@ -149,6 +149,11 @@ class QuestionUpdate(QuestionBase):
     course_id: Optional[int] = None
 
 
+class QuestionAddToChapter(BaseModel_):
+    question_list: List[QuestionCreate]
+    question_ids: List[int]
+
+
 class ChapterBase(BaseModel_):
     title: str
     description: str

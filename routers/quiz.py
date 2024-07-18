@@ -9,7 +9,7 @@ from schemas import (
     QuestionUpdate,
     QuestionGetRequest,
     QuestionSubmission,
-    QuizCompletionResponse,
+    QuizCompletionResponse, QuestionAddToChapter,
 )
 from datetime import datetime
 from typing import List, Optional
@@ -20,7 +20,7 @@ app = APIRouter(tags=["course", "quiz"])
 
 @app.post("/courses/{course_id}/question/", response_model=QuestionDisplay)
 def add_quiz_question_to_course(
-    course_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
+        course_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
     new_question = Questions(course_id=course_id, **quiz_data.dict())
     db.add(new_question)
@@ -30,13 +30,13 @@ def add_quiz_question_to_course(
 
 
 # Endpoint to add quiz questions to a course using bulk insert
-@app.post("/courses/{course_id}/questions", response_model=List[dict])
+@app.post("/courses/{course_id}/questions/", response_model=List[dict])
 def add_quiz_questions_to_course(
-    course_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
+        course_id: int, quiz_data: QuestionAddToChapter, db: Session = Depends(get_db)
 ):
     try:
         questions_to_add = []
-        for q_data in quiz_data:
+        for q_data in quiz_data.question_list:
             new_question = {
                 "course_id": course_id,
                 "question": q_data.question,
@@ -47,6 +47,12 @@ def add_quiz_questions_to_course(
                 "correct_answer": q_data.correct_answer,
             }
             questions_to_add.append(new_question)
+        for q_id in quiz_data.question_ids:
+            question = db.query(Questions).filter(Questions.id == q_id).first()
+            if question:
+                question.course_id = course_id
+            else:
+                raise HTTPException(detail=f"Question id is not valid : {q_id}", status_code=404)
 
         db.execute(Questions.__table__.insert(), questions_to_add)
         db.commit()
@@ -63,7 +69,7 @@ def add_quiz_questions_to_course(
 
 @app.post("/chapters/{chapter_id}/question", response_model=QuestionDisplay)
 def add_quiz_question_to_chapter(
-    chapter_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
+        chapter_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
     new_question = Questions(chapter_id=chapter_id, **quiz_data.dict())
     db.add(new_question)
@@ -75,7 +81,7 @@ def add_quiz_question_to_chapter(
 # Endpoint to add quiz questions to a chapter using bulk insert
 @app.post("/chapters/{chapter_id}/questions", response_model=List[dict])
 def add_quiz_questions_to_chapter(
-    chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
+        chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
 ):
     try:
         questions_to_add = []
@@ -122,7 +128,7 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
 
 @app.put("/questions/{question_id}", response_model=QuestionDisplay)
 def update_question(
-    question_id: int, question_data: QuestionUpdate, db: Session = Depends(get_db)
+        question_id: int, question_data: QuestionUpdate, db: Session = Depends(get_db)
 ):
     question = db.query(Questions).filter(Questions.id == question_id).first()
     if not question:
@@ -138,7 +144,7 @@ def update_question(
 
 @app.post("/questions", response_model=List[QuestionDisplay])
 def get_questions_by_course_or_chapter(
-    request: QuestionGetRequest, db: Session = Depends(get_db)
+        request: QuestionGetRequest, db: Session = Depends(get_db)
 ):
     query = db.query(Questions)
 
@@ -173,8 +179,8 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
 
 @app.post("/questions/submission/", response_model=QuizCompletionResponse)
 def submit_question(
-    submission: QuestionSubmission = Depends(),
-    db: Session = Depends(get_db),
+        submission: QuestionSubmission = Depends(),
+        db: Session = Depends(get_db),
 ):
     # Retrieve the question to check the correct answer
     question = (
