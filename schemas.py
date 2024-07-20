@@ -264,15 +264,14 @@ class DashStatsNew(BaseModel_):
     completed_course_count: int
     active_course_count: int
     pending_course_count: int
-    weekly_learning_activity: Dict[str, int]  # Days of the week as keys
-    last_weekly_learning_activity: Dict[str, int]
+    monthly_learning_activity: Dict[str, int]  # Months as keys
+    last_monthly_learning_activity: Dict[str, int]
     my_progress: float
     total_learning_hours: float
     total_tech_learning_hours: float
     total_non_tech_learning_hours: float
     complience_total_tech_learning_target: float = 50
     complience_total_non_tech_learning_target: float = 15
-    total_non_tech_learning_hours: float
     active_courses: List[CourseStats]
     certificates_count: int
 

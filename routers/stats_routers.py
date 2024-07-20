@@ -239,35 +239,36 @@ def dash_stats(
     return DashStats(numeric_stats=numeric_stats, details=details)
 
 
+# Modify the get_weekly_activity function to get monthly activity data
+def get_monthly_activity(start_date, end_date, db: Session, current_user_id: int):
+    return (db.query(
+        func.strftime('%Y-%m', Progress.completed_at).label('month'),
+        func.count('*').label('count')
+    ).join(Enrollment).filter(
+        Enrollment.user_id == current_user_id,
+        Progress.completed_at >= start_date,
+        Progress.completed_at <= end_date
+    ).group_by(func.strftime('%Y-%m', Progress.completed_at)).all())
+
 @app.get("/dash/new",
          response_model=Union[DashStatsNew, InstructorDashStatsNew, AdminDashStatsNew],
          )
 def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     today = datetime.now().date()
-    start_of_week = today - timedelta(days=today.weekday())
-    end_of_week = start_of_week + timedelta(days=6)
+    start_of_month = today.replace(day=1)
+    end_of_month = (start_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
-    # Define last week's time range
-    start_of_last_week = start_of_week - timedelta(days=7)
-    end_of_last_week = start_of_week - timedelta(days=1)
+    # Define last month's time range
+    start_of_last_month = (start_of_month - timedelta(days=1)).replace(day=1)
+    end_of_last_month = start_of_month - timedelta(days=1)
 
-    # Queries for current week and last week activities
-    def get_weekly_activity(start_date, end_date):
-        return (db.query(
-            func.date(Progress.completed_at).label('day'),
-            func.count('*').label('count')
-        ).join(Enrollment).filter(
-            Enrollment.user_id == current_user.id,
-            Progress.completed_at >= start_date,
-            Progress.completed_at <= end_date
-        ).group_by(func.date(Progress.completed_at)).all())
-
-    weekly_activity_data = get_weekly_activity(start_of_week, end_of_week)
-    last_weekly_activity_data = get_weekly_activity(start_of_last_week, end_of_last_week)
+    # Queries for current month and last month activities
+    monthly_activity_data = get_monthly_activity(start_of_month, end_of_month, db, current_user.id)
+    last_monthly_activity_data = get_monthly_activity(start_of_last_month, end_of_last_month, db, current_user.id)
 
     # Convert the query results to dictionaries
-    weekly_activity = {datetime.strptime(day, '%Y-%m-%d').strftime('%a'): count for day, count in weekly_activity_data}
-    last_weekly_activity = {datetime.strptime(day, '%Y-%m-%d').strftime('%a'): count for day, count in last_weekly_activity_data}
+    monthly_activity = {month: count for month, count in monthly_activity_data}
+    last_monthly_activity = {month: count for month, count in last_monthly_activity_data}
 
     # Additional code for calculating other stats
     completed_course_count = db.query(Enrollment).filter_by(user_id=current_user.id, status="Completed").count()
@@ -278,14 +279,13 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
 
-    print(current_user.role_name)
     if current_user.role_name == 'Employee':
         return DashStatsNew(
             completed_course_count=completed_course_count,
             active_course_count=active_course_count,
             pending_course_count=pending_course_count,
-            weekly_learning_activity=weekly_activity,
-            last_weekly_learning_activity=last_weekly_activity,
+            monthly_learning_activity=monthly_activity,
+            last_monthly_learning_activity=last_monthly_activity,
             my_progress=current_user.completion_percentage,
             active_courses=active_courses,
             certificates_count=current_user.certificates_count,
@@ -309,8 +309,8 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
             completed_course_count=completed_course_count,
             active_course_count=active_course_count,
             pending_course_count=pending_course_count,
-            weekly_learning_activity=weekly_activity,
-            last_weekly_learning_activity=last_weekly_activity,
+            monthly_learning_activity=monthly_activity,
+            last_monthly_learning_activity=last_monthly_activity,
             my_progress=current_user.completion_percentage,
             active_courses=active_courses,
             certificates_count=current_user.certificates_count,
@@ -321,7 +321,6 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
             complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
         )
     else:
-        print("inside this")
         total_users_count = db.query(User).filter_by(service_line_id=current_user.service_line_id).count()
         total_courses_count = db.query(Course).count()
         approval_pending_external_courses_count = (
@@ -344,8 +343,8 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
             completed_course_count=completed_course_count,
             active_course_count=active_course_count,
             pending_course_count=pending_course_count,
-            weekly_learning_activity=weekly_activity,
-            last_weekly_learning_activity=last_weekly_activity,
+            monthly_learning_activity=monthly_activity,
+            last_monthly_learning_activity=last_monthly_activity,
             my_progress=current_user.completion_percentage,
             active_courses=active_courses,
             certificates_count=current_user.certificates_count,
