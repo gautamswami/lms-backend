@@ -57,10 +57,7 @@ def add_quiz_questions_to_course(
         db.execute(Questions.__table__.insert(), questions_to_add)
         db.commit()
 
-        return [
-            {"id": question_id, **q_data.dict()}
-            for question_id, q_data in zip(range(len(questions_to_add)), quiz_data)
-        ]
+        return True
 
     except Exception as e:
         db.rollback()
