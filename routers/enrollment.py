@@ -62,7 +62,7 @@ async def enroll_by_instructor(
         raise HTTPException(
             status_code=403, detail="You can only enroll your own team members."
         )
-    course = db.query(Course).filter(Course.id == request.user_ids[0]).first()
+    course = db.query(Course).filter(Course.id == request.course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     if course.status != "approve":
