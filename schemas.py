@@ -114,7 +114,7 @@ class ContentDisplay(ContentBase):
     id: int
     title: str
     content_type: str
-    file_id: str
+    file_id: Optional[str]
     expected_time_to_complete: Optional[Union[int, float]] = 0
 
 
