@@ -268,13 +268,13 @@ async def get_course(course_id: int, db: Session = Depends(get_db), current_user
 
 @app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
 def update_course(
-        course_id: int,
-        course_data: CourseUpdate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    course_id: int,
+    course_data: CourseUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name == "Employee":
-        raise HTTPException(status_code=403, detail="Only Employees cannot update courses")
+        raise HTTPException(status_code=403, detail="Employees cannot update courses")
 
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -300,22 +300,24 @@ def update_course(
         chapters_to_delete = existing_chapter_ids - updated_chapter_ids
         for chapter_id in chapters_to_delete:
             chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-            for content in chapter.contents:
-                db.delete(content)
-            db.delete(chapter)
-            db.commit()
+            if chapter:
+                for content in chapter.contents:
+                    db.delete(content)
+                db.delete(chapter)
+                db.commit()
 
         # Create or update chapters
         for c in course_data.chapters:
             if c.id:
                 # Update existing chapter
                 chapter = db.query(Chapter).filter(Chapter.id == c.id).first()
-                for var, value in vars(c).items():
-                    if var == "id" or var == "contents":
-                        continue
-                    elif value is not None:
-                        setattr(chapter, var, value)
-                db.commit()
+                if chapter:
+                    for var, value in vars(c).items():
+                        if var == "id" or var == "contents":
+                            continue
+                        elif value is not None:
+                            setattr(chapter, var, value)
+                    db.commit()
             else:
                 # Create new chapter
                 new_chapter = Chapter(**c.dict(exclude={"id", "contents"}), course_id=course_id)
@@ -332,20 +334,22 @@ def update_course(
             contents_to_delete = existing_content_ids - updated_content_ids
             for content_id in contents_to_delete:
                 content = db.query(Content).filter(Content.id == content_id).first()
-                db.delete(content)
-                db.commit()
+                if content:
+                    db.delete(content)
+                    db.commit()
 
             # Create or update contents
             for content_data in c.contents:
                 if content_data.id:
                     # Update existing content
                     content = db.query(Content).filter(Content.id == content_data.id).first()
-                    for var, value in vars(content_data).items():
-                        if var == "id":
-                            continue
-                        elif value is not None:
-                            setattr(content, var, value)
-                    db.commit()
+                    if content:
+                        for var, value in vars(content_data).items():
+                            if var == "id":
+                                continue
+                            elif value is not None:
+                                setattr(content, var, value)
+                        db.commit()
                 else:
                     # Create new content
                     new_content = Content(**content_data.dict(exclude={"id"}), chapter_id=chapter.id)
