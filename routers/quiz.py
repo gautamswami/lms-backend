@@ -22,6 +22,10 @@ app = APIRouter(tags=["course", "quiz"])
 def add_quiz_question_to_course(
         course_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
     new_question = Questions(course_id=course_id, **quiz_data.dict())
     db.add(new_question)
     db.commit()
@@ -80,27 +84,28 @@ def add_quiz_question_to_chapter(
 def add_quiz_questions_to_chapter(
         chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
 ):
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
     try:
         questions_to_add = []
         for q_data in quiz_data:
-            new_question = {
-                "chapter_id": chapter_id,
-                "question": q_data.question,
-                "option_a": q_data.option_a,
-                "option_b": q_data.option_b,
-                "option_c": q_data.option_c,
-                "option_d": q_data.option_d,
-                "correct_answer": q_data.correct_answer,
-            }
+            new_question = Questions(
+                chapter_id=chapter_id,
+                question=q_data.question,
+                option_a=q_data.option_a,
+                option_b=q_data.option_b,
+                option_c=q_data.option_c,
+                option_d=q_data.option_d,
+                correct_answer=q_data.correct_answer,
+            )
+            db.add(new_question)
+            db.commit()
+            db.refresh(new_question)
             questions_to_add.append(new_question)
 
-        db.execute(Questions.__table__.insert(), questions_to_add)
-        db.commit()
-
-        return [
-            {"id": question_id, **q_data.dict()}
-            for question_id, q_data in zip(range(len(questions_to_add)), quiz_data)
-        ]
+        return questions_to_add
 
     except Exception as e:
         db.rollback()

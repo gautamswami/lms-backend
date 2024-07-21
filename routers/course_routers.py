@@ -359,6 +359,10 @@ async def create_content(
         files: List[UploadFile] = File(...),
         db: Session = Depends(get_db),
 ):
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
     try:
         titles = json.loads(titles_json)  # Deserialize JSON string into a Python list
         expected_time_to_complete = json.loads(expected_time_to_complete)
