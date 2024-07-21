@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from dependencies import get_db
-from models import Questions, QuizCompletions
+from models import Questions, QuizCompletions, Course, Chapter
 from schemas import (
     QuestionDisplay,
     QuestionCreate,
