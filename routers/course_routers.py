@@ -122,7 +122,7 @@ async def update_course(
     return course
 
 
-@app.get("/courses", response_model=List[CourseSortDisplay])
+@app.get("/courses/", response_model=List[CourseSortDisplay])
 def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Use a subquery to check if the user is enrolled in each course
     subquery = (
