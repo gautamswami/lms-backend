@@ -26,8 +26,6 @@ class UserBase(BaseModel_):
     entity: Optional[Any]
 
 
-
-
 class UserSortDisplay(UserBase):
     id: int
 
@@ -77,6 +75,7 @@ class UserUpdate(BaseModel_):
     counselor_id: Optional[int] = None
     entity: Optional[str] = None
 
+
 class UserTeamView(UserSortDisplay):
     number_of_trainings_completed: int
     hours_of_training_completed: int
@@ -89,6 +88,7 @@ class UserTeamView(UserSortDisplay):
 
     compliance_status: str
     reminder_needed: bool
+
 
 # ############################################ USER ENDS HERE ####################################################
 
@@ -215,16 +215,31 @@ class CourseFullDisplay(CourseSortDisplay):
         from_attributes = True
 
 
-class CourseUpdate(CourseCreate):
-    title: Optional[str] = None
-    description: Optional[str]= None
-    category: Optional[str]= None
+class ContentUpdate(BaseModel):
+    id: Optional[int]
+    title: Optional[str]
+    content_type: Optional[str]  # e.g., "video", "quiz", "text"
+    file_id: Optional[str]  # Link to the associated file
+    expected_time_to_complete: Optional[int] = 5
+
+
+class ChapterUpdate(BaseModel):
+    id: Optional[int]
+    title: Optional[str]
+    description: Optional[str]
+    contents: Optional[List[ContentUpdate]] = []
+
+
+class CourseUpdate(BaseModel):
+    title: Optional[str]
+    description: Optional[str]
+    category: Optional[str]
     expected_time_to_complete: Optional[Union[int, float]] = 0
-    difficulty_level: Optional[str]= None
-    tags: Optional[str]= None
-    entity: Optional[str]= None
-    service_line_id: Optional[str]= None
-    chapters: Optional[List[ChapterCreate]] = None
+    difficulty_level: Optional[str] = None
+    tags: Optional[str] = None
+    entity: Optional[str] = None
+    service_line_id: Optional[str] = None
+    chapters: Optional[List[ChapterUpdate]] = []
 
 
 class EnrolledCourseDisplay(CourseFullDisplay):

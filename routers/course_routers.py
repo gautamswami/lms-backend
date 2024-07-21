@@ -81,46 +81,46 @@ async def create_course(
     return course_display
 
 
-@app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
-async def update_course(
-        course_id: int,
-        updated_course_data: CourseCreate,  # Assume JSON data for the entire course including chapters and quizzes
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-):
-    # Retrieve the existing course
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-
-    # Update course properties if necessary
-    for var, value in updated_course_data.dict(exclude={"chapters"}).items():
-        if value is not None:
-            setattr(course, var, value)
-
-    db.commit()
-
-    # Assuming all chapters are to be replaced with new ones provided in updated_course_data
-    # Remove existing chapters first
-    db.query(Chapter).filter(Chapter.course_id == course_id).delete()
-    db.commit()
-
-    # Add new chapters
-    for chapter_data in updated_course_data.chapters:
-        # Explicitly set the course_id here and exclude it from the dict to avoid conflict
-        new_chapter = Chapter(
-            **chapter_data.dict(
-                exclude={"course_id"}
-            ),  # Ensure 'course_id' is excluded
-            course_id=course_id,
-        )
-        db.add(new_chapter)
-        db.commit()
-        db.refresh(new_chapter)
-
-    # Refresh the course instance to load updated data
-    db.refresh(course)
-    return course
+# @app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
+# async def update_course(
+#         course_id: int,
+#         updated_course_data: CourseCreate,  # Assume JSON data for the entire course including chapters and quizzes
+#         db: Session = Depends(get_db),
+#         current_user: User = Depends(get_current_user),
+# ):
+#     # Retrieve the existing course
+#     course = db.query(Course).filter(Course.id == course_id).first()
+#     if not course:
+#         raise HTTPException(status_code=404, detail="Course not found")
+#
+#     # Update course properties if necessary
+#     for var, value in updated_course_data.dict(exclude={"chapters"}).items():
+#         if value is not None:
+#             setattr(course, var, value)
+#
+#     db.commit()
+#
+#     # Assuming all chapters are to be replaced with new ones provided in updated_course_data
+#     # Remove existing chapters first
+#     db.query(Chapter).filter(Chapter.course_id == course_id).delete()
+#     db.commit()
+#
+#     # Add new chapters
+#     for chapter_data in updated_course_data.chapters:
+#         # Explicitly set the course_id here and exclude it from the dict to avoid conflict
+#         new_chapter = Chapter(
+#             **chapter_data.dict(
+#                 exclude={"course_id"}
+#             ),  # Ensure 'course_id' is excluded
+#             course_id=course_id,
+#         )
+#         db.add(new_chapter)
+#         db.commit()
+#         db.refresh(new_chapter)
+#
+#     # Refresh the course instance to load updated data
+#     db.refresh(course)
+#     return course
 
 
 @app.get("/courses/", response_model=List[CourseSortDisplay])
@@ -266,32 +266,96 @@ async def get_course(course_id: int, db: Session = Depends(get_db), current_user
 #     return course
 
 
-@app.put("/courses/{course_id}/", response_model=CourseSortDisplay)
-def update_question(
+@app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
+def update_course(
         course_id: int,
-        question_data: CourseUpdate,
+        course_data: CourseUpdate,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name == "Employee":
-        raise HTTPException(
-            status_code=403, detail="Only Employee can not update courses"
-        )
+        raise HTTPException(status_code=403, detail="Only Employees cannot update courses")
+
     course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
 
     if current_user.role_name == "Instructor" and current_user.id != course.created_by:
-        raise HTTPException(
-            status_code=403, detail="Instructors can only update it's own courses"
-        )
-    if not course:
-        raise HTTPException(status_code=404, detail="Question not found")
+        raise HTTPException(status_code=403, detail="Instructors can only update their own courses")
 
-    for var, value in vars(question_data).items():
-        if value is not None:
+    # Update course properties
+    for var, value in vars(course_data).items():
+        if var == "chapters":
+            continue
+        elif value is not None:
             setattr(course, var, value)
 
     db.commit()
-    return course
+
+    if course_data.chapters:
+        existing_chapter_ids = {chapter.id for chapter in course.chapters}
+        updated_chapter_ids = {chapter.id for chapter in course_data.chapters if chapter.id}
+
+        # Delete chapters that are no longer present in the update request
+        chapters_to_delete = existing_chapter_ids - updated_chapter_ids
+        for chapter_id in chapters_to_delete:
+            chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+            for content in chapter.contents:
+                db.delete(content)
+            db.delete(chapter)
+            db.commit()
+
+        # Create or update chapters
+        for c in course_data.chapters:
+            if c.id:
+                # Update existing chapter
+                chapter = db.query(Chapter).filter(Chapter.id == c.id).first()
+                for var, value in vars(c).items():
+                    if var == "id" or var == "contents":
+                        continue
+                    elif value is not None:
+                        setattr(chapter, var, value)
+                db.commit()
+            else:
+                # Create new chapter
+                new_chapter = Chapter(**c.dict(exclude={"id", "contents"}), course_id=course_id)
+                db.add(new_chapter)
+                db.commit()
+                db.refresh(new_chapter)
+                c.id = new_chapter.id
+
+            # Handle contents
+            existing_content_ids = {content.id for content in chapter.contents}
+            updated_content_ids = {content.id for content in c.contents if content.id}
+
+            # Delete contents that are no longer present in the update request
+            contents_to_delete = existing_content_ids - updated_content_ids
+            for content_id in contents_to_delete:
+                content = db.query(Content).filter(Content.id == content_id).first()
+                db.delete(content)
+                db.commit()
+
+            # Create or update contents
+            for content_data in c.contents:
+                if content_data.id:
+                    # Update existing content
+                    content = db.query(Content).filter(Content.id == content_data.id).first()
+                    for var, value in vars(content_data).items():
+                        if var == "id":
+                            continue
+                        elif value is not None:
+                            setattr(content, var, value)
+                    db.commit()
+                else:
+                    # Create new content
+                    new_content = Content(**content_data.dict(exclude={"id"}), chapter_id=chapter.id)
+                    db.add(new_content)
+                    db.commit()
+                    db.refresh(new_content)
+                    content_data.id = new_content.id
+
+    db.refresh(course)
+    return CourseFullDisplay.from_orm(course)
 
 
 @app.delete("/courses/{course_id}/", status_code=204)

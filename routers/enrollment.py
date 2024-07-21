@@ -94,7 +94,7 @@ async def enroll_by_admin(
     #         status_code=403,
     #         detail="You can only enroll users within your service line.",
     #     )
-    course = db.query(Course).filter(Course.id == request.user_ids[0]).first()
+    course = db.query(Course).filter(Course.id == request.course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     if course.status != "approve":
