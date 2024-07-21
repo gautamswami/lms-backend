@@ -80,7 +80,7 @@ def add_quiz_question_to_chapter(
 
 
 # Endpoint to add quiz questions to a chapter using bulk insert
-@app.post("/chapters/{chapter_id}/questions/"
+@app.post("/chapters/{chapter_id}/questions/")
 def add_quiz_questions_to_chapter(
         chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
 ):
