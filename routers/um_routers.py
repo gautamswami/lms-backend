@@ -366,7 +366,7 @@ def get_team_members(
     else:
         counselor = (
             db.query(User)
-            .filter(User.id == counselor_id, User.role_name == "Instructor")
+            .filter(User.id == counselor_id)
             .first()
         )
     if not counselor:
