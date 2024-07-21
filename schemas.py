@@ -26,18 +26,6 @@ class UserBase(BaseModel_):
     entity: Optional[Any]
 
 
-class UserTeamView(UserBase):
-    number_of_trainings_completed: int
-    hours_of_training_completed: int
-    number_of_trainings_pending: int
-    number_of_mandatory_trainings_overdue: int
-    hours_of_non_technical_training_completed: int
-    hours_of_technical_training_completed: int
-    hours_of_technical_training_target: int
-    hours_of_non_technical_training_target: int
-
-    compliance_status: str
-    reminder_needed: bool
 
 
 class UserSortDisplay(UserBase):
@@ -89,6 +77,18 @@ class UserUpdate(BaseModel_):
     counselor_id: Optional[int] = None
     entity: Optional[str] = None
 
+class UserTeamView(UserSortDisplay):
+    number_of_trainings_completed: int
+    hours_of_training_completed: int
+    number_of_trainings_pending: int
+    number_of_mandatory_trainings_overdue: int
+    hours_of_non_technical_training_completed: int
+    hours_of_technical_training_completed: int
+    hours_of_technical_training_target: int
+    hours_of_non_technical_training_target: int
+
+    compliance_status: str
+    reminder_needed: bool
 
 # ############################################ USER ENDS HERE ####################################################
 
