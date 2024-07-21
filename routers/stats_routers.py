@@ -250,7 +250,7 @@ def get_monthly_activity(start_date, end_date, db: Session, current_user_id: int
         Progress.completed_at <= end_date
     ).group_by(func.strftime('%Y-%m', Progress.completed_at)).all())
 
-@app.get("/dash/new",
+@app.get("/dash/new/",
          response_model=Union[DashStatsNew, InstructorDashStatsNew, AdminDashStatsNew],
          )
 def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
