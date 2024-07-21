@@ -29,9 +29,9 @@ app = APIRouter(tags=["course", "enrollment"])
 # Enroll the current user into a course
 @app.post("/enroll/self/", status_code=201)
 async def enroll_self(
-    request: EnrollmentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        request: EnrollmentRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if len(request.user_ids) != 1 or request.user_ids[0] != current_user.id:
         raise HTTPException(status_code=403, detail="You can only enroll yourself.")
@@ -46,9 +46,9 @@ async def enroll_self(
 
 @app.post("/enroll/by/instructors/", status_code=201)
 async def enroll_by_instructor(
-    request: EnrollmentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        request: EnrollmentRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name != "Instructor":
         raise HTTPException(
@@ -72,9 +72,9 @@ async def enroll_by_instructor(
 
 @app.post("/enroll/by/admins/", status_code=201)
 async def enroll_by_admin(
-    request: EnrollmentRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        request: EnrollmentRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name not in ["Admin", "Super Admin"]:
         raise HTTPException(
@@ -104,7 +104,7 @@ async def enroll_by_admin(
 
 @app.get("/users/enrolled-courses", response_model=List[EnrolledCourseDisplay])
 async def get_enrolled_courses(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
     enrolled_courses = (
@@ -129,9 +129,9 @@ async def get_enrolled_courses(
 
 @app.put("/mark_as_done/{content_id}/")
 async def mark_as_done(
-    content_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        content_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     try:
         # Fetch content and its related chapter and check for user enrollment in one query
@@ -161,8 +161,7 @@ async def mark_as_done(
             .filter(
                 Progress.enrollment_id == enrollment.id,
                 Progress.content_id == content_id,
-                Progress.chapter_id
-                == content.chapter_id,  # Ensure chapter_id is correct in your model
+                Progress.chapter_id == content.chapter_id,
             )
             .one_or_none()
         )
@@ -172,12 +171,13 @@ async def mark_as_done(
                 enrollment_id=enrollment.id,
                 chapter_id=content.chapter_id,
                 content_id=content_id,
-                completed_at=datetime.now(),
+                completed_at=datetime.now().isoformat(),  # Ensure correct ISO format
             )
             db.add(progress)
         else:
-            progress.completed_at = datetime.now()
+            progress.completed_at = datetime.now().isoformat()  # Ensure correct ISO format
         db.commit()
+
         # Check if all contents in the course are completed to update the status
         remaining_contents = (
             db.query(Content)
@@ -220,9 +220,10 @@ async def mark_as_done(
             return {"message": "Course is completed and certificate is added "}
         db.commit()
 
-        return {"message": "Progress updated successfully",
-                "pending_quizzes": pending_quizzes,
-                "remaining_contents": remaining_contents,
+        return {
+            "message": "Progress updated successfully",
+            "pending_quizzes": pending_quizzes,
+            "remaining_contents": remaining_contents,
         }
 
     except SQLAlchemyError as e:
@@ -238,9 +239,9 @@ async def mark_as_done(
 
 @app.get("/content_status/{chapter_id}", response_model=List[int])
 async def mark_as_done(
-    chapter_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        chapter_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     try:
         # Query for existing progress that matches the content_id and the current user
