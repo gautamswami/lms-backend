@@ -216,30 +216,30 @@ class CourseFullDisplay(CourseSortDisplay):
 
 
 class ContentUpdate(BaseModel):
-    id: Optional[int]
-    title: Optional[str]
-    content_type: Optional[str]  # e.g., "video", "quiz", "text"
-    file_id: Optional[str]  # Link to the associated file
-    expected_time_to_complete: Optional[int] = 5
+    id: Optional[int]= None
+    title: Optional[str]= None
+    content_type: Optional[str] = None # e.g., "video", "quiz", "text"
+    file_id: Optional[str]= None  # Link to the associated file
+    expected_time_to_complete: Optional[int] = None
 
 
 class ChapterUpdate(BaseModel):
-    id: Optional[int]
-    title: Optional[str]
-    description: Optional[str]
-    contents: Optional[List[ContentUpdate]] = []
+    id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    contents: Optional[List[ContentUpdate]] = None
 
 
 class CourseUpdate(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
     expected_time_to_complete: Optional[Union[int, float]] = 0
     difficulty_level: Optional[str] = None
     tags: Optional[str] = None
     entity: Optional[str] = None
     service_line_id: Optional[str] = None
-    chapters: Optional[List[ChapterUpdate]] = []
+    chapters: Optional[List[ChapterUpdate]] = None
 
 
 class EnrolledCourseDisplay(CourseFullDisplay):
