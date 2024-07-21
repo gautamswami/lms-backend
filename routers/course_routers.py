@@ -285,12 +285,45 @@ def update_course(
 
     # Update course properties
     for var, value in vars(course_data).items():
-        if var == "chapters":
+        if var == "chapters" or var == "questions":
             continue
         elif value is not None:
             setattr(course, var, value)
 
     db.commit()
+
+    # Update course-level questions
+    if course_data.questions:
+        existing_question_ids = {question.id for question in course.questions}
+        updated_question_ids = {question.id for question in course_data.questions if question.id}
+
+        # Delete questions that are no longer present in the update request
+        questions_to_delete = existing_question_ids - updated_question_ids
+        for question_id in questions_to_delete:
+            question = db.query(Questions).filter(Questions.id == question_id).first()
+            if question:
+                db.delete(question)
+                db.commit()
+
+        # Create or update questions
+        for q in course_data.questions:
+            if q.id:
+                # Update existing question
+                question = db.query(Questions).filter(Questions.id == q.id).first()
+                if question:
+                    for var, value in vars(q).items():
+                        if var == "id":
+                            continue
+                        elif value is not None:
+                            setattr(question, var, value)
+                    db.commit()
+            else:
+                # Create new question
+                new_question = Questions(**q.dict(exclude={"id"}), course_id=course_id)
+                db.add(new_question)
+                db.commit()
+                db.refresh(new_question)
+                q.id = new_question.id
 
     if course_data.chapters:
         existing_chapter_ids = {chapter.id for chapter in course.chapters}
@@ -303,6 +336,8 @@ def update_course(
             if chapter:
                 for content in chapter.contents:
                     db.delete(content)
+                for question in chapter.questions:
+                    db.delete(question)
                 db.delete(chapter)
                 db.commit()
 
@@ -313,14 +348,14 @@ def update_course(
                 chapter = db.query(Chapter).filter(Chapter.id == c.id).first()
                 if chapter:
                     for var, value in vars(c).items():
-                        if var == "id" or var == "contents":
+                        if var == "id" or var == "contents" or var == "questions":
                             continue
                         elif value is not None:
                             setattr(chapter, var, value)
                     db.commit()
             else:
                 # Create new chapter
-                new_chapter = Chapter(**c.dict(exclude={"id", "contents"}), course_id=course_id)
+                new_chapter = Chapter(**c.dict(exclude={"id", "contents", "questions"}), course_id=course_id)
                 db.add(new_chapter)
                 db.commit()
                 db.refresh(new_chapter)
@@ -352,11 +387,43 @@ def update_course(
                         db.commit()
                 else:
                     # Create new content
-                    new_content = Content(**content_data.dict(exclude={"id"}), chapter_id=chapter.id)
+                    new_content = Content(**content_data.dict(exclude={"id", "chapter_id"}), chapter_id=c.id)
                     db.add(new_content)
                     db.commit()
                     db.refresh(new_content)
                     content_data.id = new_content.id
+
+            # Handle chapter questions
+            existing_question_ids = {question.id for question in chapter.questions}
+            updated_question_ids = {question.id for question in c.questions if question.id}
+
+            # Delete questions that are no longer present in the update request
+            questions_to_delete = existing_question_ids - updated_question_ids
+            for question_id in questions_to_delete:
+                question = db.query(Questions).filter(Questions.id == question_id).first()
+                if question:
+                    db.delete(question)
+                    db.commit()
+
+            # Create or update questions
+            for question_data in c.questions:
+                if question_data.id:
+                    # Update existing question
+                    question = db.query(Questions).filter(Questions.id == question_data.id).first()
+                    if question:
+                        for var, value in vars(question_data).items():
+                            if var == "id":
+                                continue
+                            elif value is not None:
+                                setattr(question, var, value)
+                        db.commit()
+                else:
+                    # Create new question
+                    new_question = Questions(**question_data.dict(exclude={"id"}), chapter_id=c.id)
+                    db.add(new_question)
+                    db.commit()
+                    db.refresh(new_question)
+                    question_data.id = new_question.id
 
     db.refresh(course)
     return CourseFullDisplay.from_orm(course)
