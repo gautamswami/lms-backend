@@ -30,7 +30,7 @@ def add_quiz_question_to_course(
 
 
 # Endpoint to add quiz questions to a course using bulk insert
-@app.post("/courses/{course_id}/questions/", response_model=List[dict])
+@app.post("/courses/{course_id}/questions/")
 def add_quiz_questions_to_course(
         course_id: int, quiz_data: QuestionAddToChapter, db: Session = Depends(get_db)
 ):
