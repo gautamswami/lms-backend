@@ -215,7 +215,7 @@ def get_courses(
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.calculated_completion_percentage == 100)
+        .filter(Enrollment.completion_percentage == 100)
         .options(joinedload(Course.enrollments))
         .all()
     )
