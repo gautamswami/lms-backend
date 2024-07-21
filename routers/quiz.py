@@ -68,7 +68,7 @@ def add_quiz_questions_to_course(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/chapters/{chapter_id}/question", response_model=QuestionDisplay)
+@app.post("/chapters/{chapter_id}/question/", response_model=QuestionDisplay)
 def add_quiz_question_to_chapter(
         chapter_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
@@ -80,7 +80,7 @@ def add_quiz_question_to_chapter(
 
 
 # Endpoint to add quiz questions to a chapter using bulk insert
-@app.post("/chapters/{chapter_id}/questions", response_model=List[dict])
+@app.post("/chapters/{chapter_id}/questions/"
 def add_quiz_questions_to_chapter(
         chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
 ):
@@ -105,7 +105,7 @@ def add_quiz_questions_to_chapter(
             db.refresh(new_question)
             questions_to_add.append(new_question)
 
-        return questions_to_add
+        return True
 
     except Exception as e:
         db.rollback()
