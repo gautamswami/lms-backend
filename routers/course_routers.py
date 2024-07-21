@@ -232,26 +232,6 @@ def get_courses(
     return response
 
 
-@app.get("/courses/{course_id}/", response_model=EnrolledCourseDisplay)
-async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Retrieve the course with all related data like chapters and quizzes if needed
-    course = (db.query(Course)
-              .filter(Course.id == course_id).first())
-
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-    is_enrolled = db.query(Enrollment).filter(
-        Enrollment.user_id == current_user.id,
-        Enrollment.course_id == course_id
-    ).one_or_none()
-    # Assuming CourseFullDisplay includes all necessary data
-    # Map the result to CourseFullDisplay, including the is_enrolled flag
-    course_display = EnrolledCourseDisplay.from_orm(course)
-    if is_enrolled:
-        course_display.is_enrolled = True
-        course_display.completed_hours = is_enrolled.completed_hours
-        course_display.completion_percentage = is_enrolled.completion_percentage
-    return course_display
 
 # # Retrieve a specific course by ID
 # @app.get("/courses/{course_id}/", response_model=CourseFullDisplay)
@@ -319,7 +299,7 @@ def update_course(
                     db.commit()
             else:
                 # Create new question
-                new_question = Questions(**q.dict(exclude={"id"}), course_id=course_id)
+                new_question = Questions(**q.dict(exclude={"id", "course_id"}), course_id=course_id, added_by=current_user.id)
                 db.add(new_question)
                 db.commit()
                 db.refresh(new_question)
@@ -647,3 +627,25 @@ def get_certificates(
             db.query(Certificate).filter(Certificate.user_id == current_user.id).all()
         )
     return all_certificate
+
+
+@app.get("/courses/{course_id}/", response_model=EnrolledCourseDisplay)
+async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Retrieve the course with all related data like chapters and quizzes if needed
+    course = (db.query(Course)
+              .filter(Course.id == course_id).first())
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    is_enrolled = db.query(Enrollment).filter(
+        Enrollment.user_id == current_user.id,
+        Enrollment.course_id == course_id
+    ).one_or_none()
+    # Assuming CourseFullDisplay includes all necessary data
+    # Map the result to CourseFullDisplay, including the is_enrolled flag
+    course_display = EnrolledCourseDisplay.from_orm(course)
+    if is_enrolled:
+        course_display.is_enrolled = True
+        course_display.completed_hours = is_enrolled.completed_hours
+        course_display.completion_percentage = is_enrolled.completion_percentage
+    return course_display
