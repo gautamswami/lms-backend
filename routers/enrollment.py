@@ -1,9 +1,8 @@
 from datetime import datetime
-from operator import and_
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
@@ -218,12 +217,6 @@ async def mark_as_done(
         if remaining_contents == 0 and pending_quizzes == 0:
             enrollment.status = "Completed"
             db.add(Certificate(user_id=current_user.id, course_id=enrollment.course_id))
-        elif pending_quizzes > 0:
-            raise HTTPException(
-                status_code=400,
-                detail="All quizzes must be completed before marking the course as completed.",
-            )
-
         db.commit()
         return {"message": "Progress updated successfully"}
 
