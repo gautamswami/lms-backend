@@ -178,7 +178,6 @@ async def mark_as_done(
         else:
             progress.completed_at = datetime.now()
         db.commit()
-        db.refresh(enrollment)
         # Check if all contents in the course are completed to update the status
         remaining_contents = (
             db.query(Content)
@@ -219,6 +218,7 @@ async def mark_as_done(
             db.add(Certificate(user_id=current_user.id, course_id=enrollment.course_id))
             db.commit()
             return {"message": "Course is completed and certificate is added "}
+        db.commit()
 
         return {"message": "Progress updated successfully",
                 "pending_quizzes": pending_quizzes,
