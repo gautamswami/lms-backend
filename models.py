@@ -333,7 +333,7 @@ class Certificate(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
-    issue_date = Column(Date, default=func.now())
+    issue_date = Column(DateTime, default=func.now())
     # certificate_url = Column(String)
     # Relationships
     user = relationship("User", back_populates="certificates")

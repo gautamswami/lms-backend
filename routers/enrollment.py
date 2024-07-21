@@ -215,7 +215,7 @@ async def mark_as_done(
         )
         if remaining_contents == 0 and pending_quizzes == 0:
             enrollment.status = "Completed"
-            db.add(Certificate(user_id=current_user.id, course_id=enrollment.course_id))
+            db.add(Certificate(user_id=current_user.id, course_id=enrollment.course_id, issue_date=datetime.now()))
             db.commit()
             return {"message": "Course is completed and certificate is added "}
         db.commit()
