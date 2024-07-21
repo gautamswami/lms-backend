@@ -129,9 +129,9 @@ async def get_enrolled_courses(
 
 @app.put("/mark_as_done/{content_id}/")
 async def mark_as_done(
-        content_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    content_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         # Fetch content and its related chapter and check for user enrollment in one query
@@ -171,11 +171,11 @@ async def mark_as_done(
                 enrollment_id=enrollment.id,
                 chapter_id=content.chapter_id,
                 content_id=content_id,
-                completed_at=datetime.now().isoformat(),  # Ensure correct ISO format
+                completed_at=datetime.now(),  # Use datetime object directly
             )
             db.add(progress)
         else:
-            progress.completed_at = datetime.now().isoformat()  # Ensure correct ISO format
+            progress.completed_at = datetime.now()  # Use datetime object directly
         db.commit()
 
         # Check if all contents in the course are completed to update the status
