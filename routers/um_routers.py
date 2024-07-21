@@ -412,6 +412,7 @@ def get_team_members(
 
         team_member_details.append(
             UserTeamView(
+                id=member.id,
                 first_name=member.first_name,
                 last_name=member.last_name,
                 email=member.email,
