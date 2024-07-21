@@ -147,6 +147,7 @@ class QuestionUpdate(QuestionBase):
     option_d: Optional[str] = None
     correct_answer: Optional[str] = None
     course_id: Optional[int] = None
+    id: Optional[int] = None
 
 
 class QuestionAddToChapter(BaseModel_):
@@ -228,6 +229,8 @@ class ChapterUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     contents: Optional[List[ContentUpdate]] = None
+    questions: Optional[List[QuestionUpdate]] = None
+
 
 
 class CourseUpdate(BaseModel):
@@ -240,6 +243,7 @@ class CourseUpdate(BaseModel):
     entity: Optional[str] = None
     service_line_id: Optional[str] = None
     chapters: Optional[List[ChapterUpdate]] = None
+    questions: Optional[List[QuestionUpdate]] = None
 
 
 class EnrolledCourseDisplay(CourseFullDisplay):
