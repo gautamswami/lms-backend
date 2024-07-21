@@ -216,14 +216,15 @@ class CourseFullDisplay(CourseSortDisplay):
 
 
 class CourseUpdate(CourseCreate):
-    title: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str]= None
+    category: Optional[str]= None
     expected_time_to_complete: Optional[Union[int, float]] = 0
-    difficulty_level: Optional[str]
-    tags: Optional[str]
-    entity: Optional[str]
-    service_line_id: Optional[str]
+    difficulty_level: Optional[str]= None
+    tags: Optional[str]= None
+    entity: Optional[str]= None
+    service_line_id: Optional[str]= None
+    chapters: Optional[List[ChapterCreate]] = None
 
 
 class EnrolledCourseDisplay(CourseFullDisplay):
