@@ -14,7 +14,7 @@ class BaseModel_(BaseModel):
 
 
 class UserBase(BaseModel_):
-    dp_file_id: Optional[str]
+    dp_file_id: Optional[str] = None
     first_name: str
     last_name: str
     email: EmailStr
@@ -115,7 +115,7 @@ class ContentDisplay(ContentBase):
     title: str
     content_type: str
     file_id: str
-    expected_time_to_complete: Optional[Union[int, float]]
+    expected_time_to_complete: Optional[Union[int, float]] = 0
 
 
 class QuestionBase(BaseModel_):
@@ -166,7 +166,7 @@ class ChapterCreate(ChapterBase):
 
 class ChapterDisplay(ChapterCreate):
     id: int
-    expected_time_to_complete: int = 0
+    expected_time_to_complete: Optional[Union[int, float]] = 0
     contents: list[ContentDisplay]
     questions: list[QuestionDisplay]
 
@@ -177,7 +177,7 @@ class ChapterDisplay(ChapterCreate):
 class CourseBase(BaseModel_):
     title: str
     category: str  # Assuming thumbnail is stored as a URL or file path
-    expected_time_to_complete: int
+    expected_time_to_complete: Optional[Union[int, float]] = 0
     difficulty_level: Optional[str]  # Added to reflect the course difficulty level
     tags: Optional[str]  # Added to handle course tagging feature
     entity: Optional[str] = "PIERAG"  # Added to handle course tagging feature
@@ -199,7 +199,7 @@ class CourseSortDisplay(CourseBase):
     chapters_count: Optional[int]
     feedback_count: Optional[int]
     completed_students_count: Optional[int]
-    expected_time_to_complete: Optional[int]
+    expected_time_to_complete: Optional[Union[int, float]] = 0
     average_rating: Optional[float]
     is_enrolled: Optional[bool] = False
     creator: Optional[UserDisplay]
@@ -219,7 +219,7 @@ class CourseUpdate(CourseCreate):
     title: Optional[str]
     description: Optional[str]
     category: Optional[str]
-    expected_time_to_complete: Optional[int]
+    expected_time_to_complete: Optional[Union[int, float]] = 0
     difficulty_level: Optional[str]
     tags: Optional[str]
     entity: Optional[str]
