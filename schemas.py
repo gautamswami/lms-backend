@@ -580,7 +580,7 @@ class ExternalCertificationDisplay(BaseModel_):
 
 
 class CertificateDisplay(BaseModel_):
-    id: Optional[int]
+    id: Optional[any]
     issue_date: Optional[date]
     user: UserSortDisplay
     course: CourseSortDisplay
