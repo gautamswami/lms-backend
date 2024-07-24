@@ -2,14 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from dependencies import get_db
-from models import Questions, QuizCompletions, Course, Chapter
+from models import Questions, QuizCompletions, Course, Chapter, Enrollment
 from schemas import (
     QuestionDisplay,
     QuestionCreate,
     QuestionUpdate,
     QuestionGetRequest,
     QuestionSubmission,
-    QuizCompletionResponse, QuestionAddToChapter,
+    QuizCompletionResponse,
+    QuestionAddToChapter,
 )
 from datetime import datetime
 from typing import List, Optional
@@ -20,7 +21,7 @@ app = APIRouter(tags=["course", "quiz"])
 
 @app.post("/courses/{course_id}/question/", response_model=QuestionDisplay)
 def add_quiz_question_to_course(
-        course_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
+    course_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -36,7 +37,7 @@ def add_quiz_question_to_course(
 # Endpoint to add quiz questions to a course using bulk insert
 @app.post("/courses/{course_id}/questions/")
 def add_quiz_questions_to_course(
-        course_id: int, quiz_data: QuestionAddToChapter, db: Session = Depends(get_db)
+    course_id: int, quiz_data: QuestionAddToChapter, db: Session = Depends(get_db)
 ):
     try:
         questions_to_add = []
@@ -56,7 +57,9 @@ def add_quiz_questions_to_course(
             if question:
                 question.course_id = course_id
             else:
-                raise HTTPException(detail=f"Question id is not valid : {q_id}", status_code=404)
+                raise HTTPException(
+                    detail=f"Question id is not valid : {q_id}", status_code=404
+                )
 
         db.execute(Questions.__table__.insert(), questions_to_add)
         db.commit()
@@ -70,7 +73,7 @@ def add_quiz_questions_to_course(
 
 @app.post("/chapters/{chapter_id}/question/", response_model=QuestionDisplay)
 def add_quiz_question_to_chapter(
-        chapter_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
+    chapter_id: int, quiz_data: QuestionCreate, db: Session = Depends(get_db)
 ):
     new_question = Questions(chapter_id=chapter_id, **quiz_data.dict())
     db.add(new_question)
@@ -82,7 +85,7 @@ def add_quiz_question_to_chapter(
 # Endpoint to add quiz questions to a chapter using bulk insert
 @app.post("/chapters/{chapter_id}/questions/")
 def add_quiz_questions_to_chapter(
-        chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
+    chapter_id: int, quiz_data: List[QuestionCreate], db: Session = Depends(get_db)
 ):
     chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
     if not chapter:
@@ -130,7 +133,7 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
 
 @app.put("/questions/{question_id}", response_model=QuestionDisplay)
 def update_question(
-        question_id: int, question_data: QuestionUpdate, db: Session = Depends(get_db)
+    question_id: int, question_data: QuestionUpdate, db: Session = Depends(get_db)
 ):
     question = db.query(Questions).filter(Questions.id == question_id).first()
     if not question:
@@ -146,7 +149,7 @@ def update_question(
 
 @app.post("/questions", response_model=List[QuestionDisplay])
 def get_questions_by_course_or_chapter(
-        request: QuestionGetRequest, db: Session = Depends(get_db)
+    request: QuestionGetRequest, db: Session = Depends(get_db)
 ):
     query = db.query(Questions)
 
@@ -179,10 +182,42 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
     return {"message": "Question deleted successfully"}
 
 
+# @app.post("/questions/submission/", response_model=QuizCompletionResponse)
+# def submit_question(
+#     submission: QuestionSubmission = Depends(),
+#     db: Session = Depends(get_db),
+# ):
+#     # Retrieve the question to check the correct answer
+#     question = (
+#         db.query(Questions).filter(Questions.id == submission.question_id).first()
+#     )
+#     if not question:
+#         raise HTTPException(status_code=404, detail="Question not found")
+
+#     # Check if the selected option is correct
+#     is_correct = submission.selected_option == question.correct_answer
+
+#     # Create a new quiz completion record
+#     new_quiz_completion = QuizCompletions(
+#         question_id=submission.question_id,
+#         correct_answer=is_correct,
+#         source=submission.source,
+#         enrollment_id=submission.enrollment_id,
+#         attempt_datetime=datetime.now(),
+#     )
+#     # Calculate the attempt number before committing
+#     new_quiz_completion.attempt_no = new_quiz_completion.calculate_attempt_no(db)
+
+#     db.add(new_quiz_completion)
+#     db.commit()
+
+#     return new_quiz_completion
+
+
 @app.post("/questions/submission/", response_model=QuizCompletionResponse)
 def submit_question(
-        submission: QuestionSubmission = Depends(),
-        db: Session = Depends(get_db),
+    submission: QuestionSubmission = Depends(),
+    db: Session = Depends(get_db),
 ):
     # Retrieve the question to check the correct answer
     question = (
@@ -190,6 +225,22 @@ def submit_question(
     )
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+
+    # Find the corresponding enrollment
+    enrollment = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.user_id == submission.user_id,
+            Enrollment.course_id == submission.course_id,
+            Enrollment.status
+            != "Completed",  # Assuming you want to filter out completed courses
+        )
+        .first()
+    )
+    if not enrollment:
+        raise HTTPException(
+            status_code=404, detail="Enrollment not found for the given course and user"
+        )
 
     # Check if the selected option is correct
     is_correct = submission.selected_option == question.correct_answer
@@ -199,7 +250,7 @@ def submit_question(
         question_id=submission.question_id,
         correct_answer=is_correct,
         source=submission.source,
-        enrollment_id=submission.enrollment_id,
+        enrollment_id=enrollment.id,
         attempt_datetime=datetime.now(),
     )
     # Calculate the attempt number before committing
