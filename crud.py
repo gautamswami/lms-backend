@@ -129,29 +129,32 @@ def enroll_users(course_id: int, user_ids: list[int], db: Session) -> dict:
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    for user_id in user_ids:
-        existing_enrollment = db.query(Enrollment).filter_by(
-            user_id=user_id,
-            course_id=course_id
-        ).first()
-        if existing_enrollment:
-            # Optionally, update the existing enrollment's due_date or other fields if necessary
-            # existing_enrollment.due_date = due_date
-            continue  # Skip adding a new enrollment if one already exists
+    existing_enrollments = db.query(Enrollment.user_id).filter(Enrollment.course_id == course_id).all()
+    existing_user_ids = {user_id for user_id, in existing_enrollments}
 
-        enrollment = Enrollment(
-            user_id=user_id,
-            course_id=course_id,
-            enroll_date=datetime.now(),
-            year=datetime.now().year,
-            status="Enrolled",
-        )
-        db.add(enrollment)
-    db.commit()
+    new_enrollments = []
+    for user_id in user_ids:
+        if user_id not in existing_user_ids:
+            enrollment = Enrollment(
+                user_id=user_id,
+                course_id=course_id,
+                enroll_date=datetime.now(),
+                due_date=datetime.now() + timedelta(days=course.expected_time_to_complete),
+                year=datetime.now().year,
+                status="Enrolled",
+            )
+            new_enrollments.append(enrollment)
+            db.add(enrollment)
+
+    if new_enrollments:
+        db.commit()
+    else:
+        return {"message": "All users are already enrolled", "course_id": course_id}
+
     return {
         "message": "Users successfully enrolled",
         "course_id": course_id,
-        "user_ids": user_ids,
+        "user_ids": [e.user_id for e in new_enrollments],
     }
 
 

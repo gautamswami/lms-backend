@@ -590,6 +590,45 @@ Enrollment.status = column_property(
     ).label("status")
 )
 
+
+Enrollment.pending_chapter_count = column_property(
+    select(func.count(Chapter.id))
+    .select_from(Chapter)
+    .join(Content)
+    .outerjoin(
+        Progress,
+        and_(
+            Progress.content_id == Content.id,
+            Progress.enrollment_id == Enrollment.id,
+        ),
+    )
+    .filter(
+        Chapter.course_id == Enrollment.course_id,
+        Progress.completed_at.is_(None),
+    )
+    .correlate_except(Progress)
+    .scalar_subquery()
+)
+
+Enrollment.pending_question_count = column_property(
+    select(func.count(Questions.id))
+    .select_from(Questions)
+    .join(Course)
+    .outerjoin(
+        QuizCompletions,
+        and_(
+            QuizCompletions.question_id == Questions.id,
+            QuizCompletions.enrollment_id == Enrollment.id,
+            QuizCompletions.correct_answer == True,
+        ),
+    )
+    .filter(
+        Course.id == Enrollment.course_id,
+        QuizCompletions.id.is_(None),  # No completion record for this question
+    )
+    .correlate_except(QuizCompletions)
+    .scalar_subquery()
+)
 #
 # ServiceLine.total_courses = column_property(
 #     select(func.count(Course.id))
@@ -609,7 +648,7 @@ User.total_tech_learning_hours = column_property(
     .select_from(User)  # Start explicitly from User
     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
-    .where((Enrollment.user_id == User.id) & (Course.category == "Technical"))  # Apply filters
+    .where((Enrollment.user_id == User.id) & (Course.category == "technical"))  # Apply filters
     .label("total_tech_learning_hours")
 )
 
@@ -618,7 +657,7 @@ User.total_non_tech_learning_hours = column_property(
     .select_from(User)  # Start explicitly from User
     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
-    .where((Enrollment.user_id == User.id) & (Course.category != "Technical"))  # Apply filters
+    .where((Enrollment.user_id == User.id) & (Course.category == "nonTechnical"))  # Apply filters
     .label("total_non_tech_learning_hours")
 )
 
