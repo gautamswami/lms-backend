@@ -9,7 +9,12 @@ from sqlalchemy import (
     Numeric,
     Index,
     extract,
-    Boolean, case, cast, Float, Join, UniqueConstraint
+    Boolean,
+    case,
+    cast,
+    Float,
+    Join,
+    UniqueConstraint,
 )
 from sqlalchemy import select, func
 from sqlalchemy.orm import column_property, backref
@@ -143,13 +148,16 @@ class User(Base):
         back_populates="approver",
         cascade="all, delete-orphan",
     )
-    learning_path_enrollments = relationship("LearningPathEnrollment", back_populates="user")  # This line is added
+    learning_path_enrollments = relationship(
+        "LearningPathEnrollment", back_populates="user"
+    )  # This line is added
     # Ensuring the relationship is explicitly stated (if needed for clarity or other ORM reasons)
     certificates = relationship("Certificate", back_populates="user")
 
     @property
     def certificates_count(self):
         return len(self.certificates)
+
     __table_args__ = (Index("idx_user_email", "email"),)
 
 
@@ -213,7 +221,9 @@ class Enrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     course_id = Column(Integer, ForeignKey("courses.id"))
     enroll_date = Column(Date, default=func.now())
-    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    year = Column(
+        Integer, default=lambda: extract("year", func.now())
+    )  # Default value of current year
     due_date = Column(Date, nullable=True)
     status = Column(String, default="Enrolled")
     # completion_percentage = Column(
@@ -224,9 +234,7 @@ class Enrollment(Base):
     course = relationship("Course", back_populates="enrollments")
     progress = relationship("Progress", uselist=False, back_populates="enrollment")
 
-    __table_args__ = (
-        UniqueConstraint('user_id', 'course_id', name='_user_course_uc'),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "course_id", name="_user_course_uc"),)
 
     @property
     def calculated_completion_percentage(self):
@@ -281,9 +289,7 @@ class Enrollment(Base):
 
         # Count the number of contents completed
         content_id = enrollment.progress.content_id
-        last_content = (
-            session.query(Content).filter_by(id=content_id).one_or_none()
-        )
+        last_content = session.query(Content).filter_by(id=content_id).one_or_none()
         if not last_content:
             # print("Last content not found.")
             return 0.0  # Handle case where last content doesn't exist
@@ -324,7 +330,7 @@ class Progress(Base):
     last_content = relationship("Content")
 
     __table_args__ = (
-        UniqueConstraint('enrollment_id', 'content_id', name='_enrollment_content_uc'),
+        UniqueConstraint("enrollment_id", "content_id", name="_enrollment_content_uc"),
     )
 
 
@@ -339,9 +345,7 @@ class Certificate(Base):
     user = relationship("User", back_populates="certificates")
     course = relationship("Course", backref="certificates")
 
-    __table_args__ = (
-        UniqueConstraint('user_id', 'course_id', name='_user_course_uc'),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "course_id", name="_user_course_uc"),)
 
 
 class LearningPath(Base):
@@ -367,10 +371,14 @@ class LearningPathEnrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
     enroll_date = Column(Date, default=func.now())
-    year = Column(Integer, default=lambda: extract('year', func.now()))  # Default value of current year
+    year = Column(
+        Integer, default=lambda: extract("year", func.now())
+    )  # Default value of current year
     due_date = Column(Date, nullable=True, default=func.now())
     status = Column(String, default="Enrolled")
-    completion_percentage = Column(Numeric, default=0)  # Represents overall course completion percentage
+    completion_percentage = Column(
+        Numeric, default=0
+    )  # Represents overall course completion percentage
 
     # Relationships
 
@@ -395,7 +403,7 @@ class LearningPathEnrollment(Base):
         return (completed_contents / total_contents) * 100
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'learning_path_id', name='_user_learning_path_uc'),
+        UniqueConstraint("user_id", "learning_path_id", name="_user_learning_path_uc"),
     )
 
 
@@ -523,13 +531,13 @@ class QuizCompletions(Base):
     def calculate_attempt_no(self, db):
         """Calculate the attempt number before inserting a new record."""
         return (
-                db.query(func.count(QuizCompletions.id))
-                .filter(
-                    QuizCompletions.question_id == self.question_id,
-                    QuizCompletions.enrollment_id == self.enrollment_id,
-                )
-                .scalar()
-                + 1
+            db.query(func.count(QuizCompletions.id))
+            .filter(
+                QuizCompletions.question_id == self.question_id,
+                QuizCompletions.enrollment_id == self.enrollment_id,
+            )
+            .scalar()
+            + 1
         )
 
 
@@ -562,8 +570,9 @@ Enrollment.expected_time_to_complete = column_property(
 
 Enrollment.completed_hours = column_property(
     select(func.coalesce(func.sum(Content.expected_time_to_complete), 0))
-    .where(Progress.enrollment_id == Enrollment.id,
-           Content.id == Progress.content_id)  # Ensuring it's for the current enrollment
+    .where(
+        Progress.enrollment_id == Enrollment.id, Content.id == Progress.content_id
+    )  # Ensuring it's for the current enrollment
     .correlate_except(Content, Progress)
     .label("completed_hours")
 )
@@ -572,11 +581,13 @@ Enrollment.completed_hours = column_property(
 Enrollment.completion_percentage = column_property(
     select(
         cast(
-            100 * func.coalesce(Enrollment.completed_hours, 0) /
-            func.coalesce(Enrollment.expected_time_to_complete, 0),
-            Float
+            100
+            * func.coalesce(Enrollment.completed_hours, 0)
+            / func.coalesce(Enrollment.expected_time_to_complete, 0),
+            Float,
         )
-    ).correlate_except(Course)
+    )
+    .correlate_except(Course)
     .label("completion_percentage")
 )
 
@@ -584,8 +595,11 @@ Enrollment.status = column_property(
     select(
         case(
             (Enrollment.completed_hours == 0, "Pending"),
-            (Enrollment.completed_hours == Enrollment.expected_time_to_complete, "Completed"),
-            else_="Active"
+            (
+                Enrollment.completed_hours == Enrollment.expected_time_to_complete,
+                "Completed",
+            ),
+            else_="Active",
         )
     ).label("status")
 )
@@ -648,7 +662,9 @@ User.total_tech_learning_hours = column_property(
     .select_from(User)  # Start explicitly from User
     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
-    .where((Enrollment.user_id == User.id) & (Course.category == "technical"))  # Apply filters
+    .where(
+        (Enrollment.user_id == User.id) & (Course.category == "technical")
+    )  # Apply filters
     .label("total_tech_learning_hours")
 )
 
@@ -657,19 +673,16 @@ User.total_non_tech_learning_hours = column_property(
     .select_from(User)  # Start explicitly from User
     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
-    .where((Enrollment.user_id == User.id) & (Course.category == "nonTechnical"))  # Apply filters
+    .where(
+        (Enrollment.user_id == User.id) & (Course.category == "nonTechnical")
+    )  # Apply filters
     .label("total_non_tech_learning_hours")
 )
 
 
-
 User.completion_percentage = column_property(
-    select(
-        cast(
-            func.coalesce(func.avg(Enrollment.completion_percentage), 0),
-            Float
-        )
-    ).where(Enrollment.user_id == User.id)
+    select(cast(func.coalesce(func.avg(Enrollment.completion_percentage), 0), Float))
+    .where(Enrollment.user_id == User.id)
     .correlate_except(Enrollment)
     .label("user_completion_percentage")
 )

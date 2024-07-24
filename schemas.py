@@ -254,6 +254,13 @@ class EnrolledCourseDisplay(CourseFullDisplay):
     )
 
 
+class ListCoursesDisplay(EnrolledCourseDisplay):
+    total_questions: Optional[int] = 0  # Total number of questions in the course
+    completed_questions: Optional[int] = (
+        0  # Number of questions the user has answered correctly
+    )
+
+
 # ############################################ Course ENDS HERE ####################################################
 
 

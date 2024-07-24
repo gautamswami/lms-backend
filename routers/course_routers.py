@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Form
 from sqlalchemy import exists
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql import func
 
 # Import local modules
 from auth import get_current_user
@@ -19,6 +20,7 @@ from models import (
     Enrollment,
     Questions,
     Certificate,
+    QuizCompletions,
 )
 from schemas import (
     CourseCreate,
@@ -31,6 +33,7 @@ from schemas import (
     CourseUpdate,
     CertificateDisplay,
     EnrolledCourseDisplay,
+    ListCoursesDisplay,
 )
 
 app = APIRouter(tags=["course"])
@@ -39,12 +42,11 @@ app = APIRouter(tags=["course"])
 # ------------------- Course Operations -------------------
 
 
-
 @app.post("/courses/", response_model=CourseFullDisplay)
 async def create_course(
-        course_data: CourseCreate,  # Assume JSON data is submitted
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    course_data: CourseCreate,  # Assume JSON data is submitted
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name == "Employee":
         raise HTTPException(
@@ -124,7 +126,9 @@ async def create_course(
 
 
 @app.get("/courses/", response_model=List[CourseSortDisplay])
-def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_courses(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     # Use a subquery to check if the user is enrolled in each course
     subquery = (
         db.query(Enrollment.course_id)
@@ -134,13 +138,15 @@ def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_
 
     # Query all courses and check each one against the subquery for enrollment
     courses = (
-        db.query(Course, exists().where(Course.id == subquery.c.course_id).correlate(Course))
+        db.query(
+            Course, exists().where(Course.id == subquery.c.course_id).correlate(Course)
+        )
         .options(joinedload(Course.approver))
         .all()
     )
     result = []
     for course, is_enrolled in courses:
-        course_ =  CourseSortDisplay.from_orm(course)
+        course_ = CourseSortDisplay.from_orm(course)
         course_.is_enrolled = is_enrolled
         result.append(course_)
 
@@ -150,7 +156,7 @@ def get_courses(db: Session = Depends(get_db), current_user: User = Depends(get_
 # Retrieve courses the current user is enrolled in
 @app.get("/courses/enrolled/", response_model=List[EnrolledCourseDisplay])
 def get_courses(
-        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
     enrolled_courses = (
@@ -175,9 +181,9 @@ def get_courses(
 
 
 # Retrieve active courses with user's progress
-@app.get("/courses/active/", response_model=List[EnrolledCourseDisplay])
+@app.get("/courses/active/", response_model=List[ListCoursesDisplay])
 def get_courses(
-        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
     enrolled_courses = (
@@ -194,9 +200,18 @@ def get_courses(
     response = []
     for course in enrolled_courses:
         for enrollment in course.enrollments:
-            course_display = EnrolledCourseDisplay.from_orm(course)
+            course_display = ListCoursesDisplay.from_orm(course)
             course_display.completed_hours = enrollment.completed_hours
             course_display.completion_percentage = enrollment.completion_percentage
+            course_display.total_questions = len(course.questions)
+            course_display.completed_questions = (
+                db.query(func.count(QuizCompletions.id))
+                .filter(
+                    QuizCompletions.enrollment_id == enrollment.id,
+                    QuizCompletions.correct_answer == True,
+                )
+                .scalar()
+            )
             response.append(course_display)
 
     return response
@@ -207,9 +222,9 @@ def get_courses(
 
 
 # Retrieve completed courses
-@app.get("/courses/completed/", response_model=List[EnrolledCourseDisplay])
+@app.get("/courses/completed/", response_model=List[ListCoursesDisplay])
 def get_courses(
-        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
     enrolled_courses = (
@@ -226,13 +241,21 @@ def get_courses(
     response = []
     for course in enrolled_courses:
         for enrollment in course.enrollments:
-            course_display = EnrolledCourseDisplay.from_orm(course)
+            course_display = ListCoursesDisplay.from_orm(course)
             course_display.completed_hours = enrollment.completed_hours
             course_display.completion_percentage = enrollment.completion_percentage
+            course_display.total_questions = len(course.questions)
+            course_display.completed_questions = (
+                db.query(func.count(QuizCompletions.id))
+                .filter(
+                    QuizCompletions.enrollment_id == enrollment.id,
+                    QuizCompletions.correct_answer == True,
+                )
+                .scalar()
+            )
             response.append(course_display)
 
     return response
-
 
 
 # # Retrieve a specific course by ID
@@ -263,7 +286,9 @@ def update_course(
         raise HTTPException(status_code=404, detail="Course not found")
 
     if current_user.role_name == "Instructor" and current_user.id != course.created_by:
-        raise HTTPException(status_code=403, detail="Instructors can only update their own courses")
+        raise HTTPException(
+            status_code=403, detail="Instructors can only update their own courses"
+        )
 
     # Update course properties
     for var, value in vars(course_data).items():
@@ -277,7 +302,9 @@ def update_course(
     # Update course-level questions
     if course_data.questions:
         existing_question_ids = {question.id for question in course.questions}
-        updated_question_ids = {question.id for question in course_data.questions if question.id}
+        updated_question_ids = {
+            question.id for question in course_data.questions if question.id
+        }
 
         # Delete questions that are no longer present in the update request
         questions_to_delete = existing_question_ids - updated_question_ids
@@ -301,7 +328,11 @@ def update_course(
                     db.commit()
             else:
                 # Create new question
-                new_question = Questions(**q.dict(exclude={"id", "course_id"}), course_id=course_id, added_by=current_user.id)
+                new_question = Questions(
+                    **q.dict(exclude={"id", "course_id"}),
+                    course_id=course_id,
+                    added_by=current_user.id,
+                )
                 db.add(new_question)
                 db.commit()
                 db.refresh(new_question)
@@ -309,7 +340,9 @@ def update_course(
 
     if course_data.chapters:
         existing_chapter_ids = {chapter.id for chapter in course.chapters}
-        updated_chapter_ids = {chapter.id for chapter in course_data.chapters if chapter.id}
+        updated_chapter_ids = {
+            chapter.id for chapter in course_data.chapters if chapter.id
+        }
 
         # Delete chapters that are no longer present in the update request
         chapters_to_delete = existing_chapter_ids - updated_chapter_ids
@@ -337,7 +370,10 @@ def update_course(
                     db.commit()
             else:
                 # Create new chapter
-                new_chapter = Chapter(**c.dict(exclude={"id", "contents", "questions"}), course_id=course_id)
+                new_chapter = Chapter(
+                    **c.dict(exclude={"id", "contents", "questions"}),
+                    course_id=course_id,
+                )
                 db.add(new_chapter)
                 db.commit()
                 db.refresh(new_chapter)
@@ -359,7 +395,9 @@ def update_course(
             for content_data in c.contents:
                 if content_data.id:
                     # Update existing content
-                    content = db.query(Content).filter(Content.id == content_data.id).first()
+                    content = (
+                        db.query(Content).filter(Content.id == content_data.id).first()
+                    )
                     if content:
                         for var, value in vars(content_data).items():
                             if var == "id":
@@ -369,7 +407,10 @@ def update_course(
                         db.commit()
                 else:
                     # Create new content
-                    new_content = Content(**content_data.dict(exclude={"id", "chapter_id"}), chapter_id=c.id)
+                    new_content = Content(
+                        **content_data.dict(exclude={"id", "chapter_id"}),
+                        chapter_id=c.id,
+                    )
                     db.add(new_content)
                     db.commit()
                     db.refresh(new_content)
@@ -377,12 +418,16 @@ def update_course(
 
             # Handle chapter questions
             existing_question_ids = {question.id for question in chapter.questions}
-            updated_question_ids = {question.id for question in c.questions if question.id}
+            updated_question_ids = {
+                question.id for question in c.questions if question.id
+            }
 
             # Delete questions that are no longer present in the update request
             questions_to_delete = existing_question_ids - updated_question_ids
             for question_id in questions_to_delete:
-                question = db.query(Questions).filter(Questions.id == question_id).first()
+                question = (
+                    db.query(Questions).filter(Questions.id == question_id).first()
+                )
                 if question:
                     db.delete(question)
                     db.commit()
@@ -391,7 +436,11 @@ def update_course(
             for question_data in c.questions:
                 if question_data.id:
                     # Update existing question
-                    question = db.query(Questions).filter(Questions.id == question_data.id).first()
+                    question = (
+                        db.query(Questions)
+                        .filter(Questions.id == question_data.id)
+                        .first()
+                    )
                     if question:
                         for var, value in vars(question_data).items():
                             if var == "id":
@@ -401,7 +450,9 @@ def update_course(
                         db.commit()
                 else:
                     # Create new question
-                    new_question = Questions(**question_data.dict(exclude={"id"}), chapter_id=c.id)
+                    new_question = Questions(
+                        **question_data.dict(exclude={"id"}), chapter_id=c.id
+                    )
                     db.add(new_question)
                     db.commit()
                     db.refresh(new_question)
@@ -413,9 +464,9 @@ def update_course(
 
 @app.delete("/courses/{course_id}/", status_code=204)
 def update_question(
-        course_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     # DELETE course by id only if there is no Enrollments, delete all  Chapters, delete all content
     # Check for any existing enrollments for the course
@@ -452,9 +503,9 @@ def update_question(
 # Create a new chapter for a course
 @app.post("/courses/chapters/", response_model=ChapterDisplay)
 def create_chapter(
-        chapter: ChapterCreate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    chapter: ChapterCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     course = db.query(Course).filter(Course.id == chapter.course_id).first()
     if not course or course.created_by != current_user.id:
@@ -471,11 +522,11 @@ def create_chapter(
 
 @app.post("/chapters/{chapter_id}/content/", response_model=List[ContentDisplay])
 async def create_content(
-        chapter_id: int,
-        titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
-        expected_time_to_complete: str = Form(...),
-        files: List[UploadFile] = File(...),
-        db: Session = Depends(get_db),
+    chapter_id: int,
+    titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
+    expected_time_to_complete: str = Form(...),
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
 ):
     chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
     if not chapter:
@@ -527,9 +578,9 @@ async def create_content(
 # Enroll the current user into a course
 @app.post("/enroll/self/", status_code=201)
 async def enroll_self(
-        request: EnrollmentRequest,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    request: EnrollmentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if len(request.user_ids) != 1 or request.user_ids[0] != current_user.id:
         raise HTTPException(status_code=403, detail="You can only enroll yourself.")
@@ -539,9 +590,9 @@ async def enroll_self(
 
 @app.patch("/courses/{course_id}/approve")
 def approve_course(
-        course_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name in ["Employee", "Instructor"]:
         raise HTTPException(status_code=403, detail="Only admins can approve courses")
@@ -560,9 +611,9 @@ def approve_course(
 
 @app.patch("/courses/{course_id}/reject")
 def approve_course(
-        course_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role_name in ["Employee", "Instructor"]:
         raise HTTPException(status_code=403, detail="Only admins can approve courses")
@@ -581,9 +632,9 @@ def approve_course(
 
 @app.post("/courses/{course_id}/thumbnail", status_code=200)
 async def upload_course_thumbnail(
-        course_id: int = Path(..., description="The ID of the course"),
-        file: UploadFile = File(...),
-        db: Session = Depends(get_db),
+    course_id: int = Path(..., description="The ID of the course"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     # Check if the file is an image
     if not file.content_type.startswith("image/"):
@@ -620,7 +671,7 @@ async def upload_course_thumbnail(
     "/courses/certificate/", status_code=200, response_model=List[CertificateDisplay]
 )
 def get_certificates(
-        db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     if current_user.role_name != "Employee":
         all_certificate = db.query(Certificate).all()
@@ -631,23 +682,38 @@ def get_certificates(
     return all_certificate
 
 
-@app.get("/courses/{course_id}/", response_model=EnrolledCourseDisplay)
-async def get_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@app.get("/courses/{course_id}/", response_model=ListCoursesDisplay)
+async def get_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     # Retrieve the course with all related data like chapters and quizzes if needed
-    course = (db.query(Course)
-              .filter(Course.id == course_id).first())
+    course = db.query(Course).filter(Course.id == course_id).first()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    is_enrolled = db.query(Enrollment).filter(
-        Enrollment.user_id == current_user.id,
-        Enrollment.course_id == course_id
-    ).one_or_none()
+    is_enrolled = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.user_id == current_user.id, Enrollment.course_id == course_id
+        )
+        .one_or_none()
+    )
     # Assuming CourseFullDisplay includes all necessary data
     # Map the result to CourseFullDisplay, including the is_enrolled flag
-    course_display = EnrolledCourseDisplay.from_orm(course)
+    course_display = ListCoursesDisplay.from_orm(course)
     if is_enrolled:
         course_display.is_enrolled = True
         course_display.completed_hours = is_enrolled.completed_hours
         course_display.completion_percentage = is_enrolled.completion_percentage
+        course_display.total_questions = len(course.questions)
+        course_display.completed_questions = (
+            db.query(func.count(QuizCompletions.id))
+            .filter(
+                QuizCompletions.enrollment_id == is_enrolled.id,
+                QuizCompletions.correct_answer == True,
+            )
+            .scalar()
+        )
     return course_display
