@@ -217,10 +217,10 @@ class CourseFullDisplay(CourseSortDisplay):
 
 
 class ContentUpdate(BaseModel):
-    id: Optional[int]= None
-    title: Optional[str]= None
-    content_type: Optional[str] = None # e.g., "video", "quiz", "text"
-    file_id: Optional[str]= None  # Link to the associated file
+    id: Optional[int] = None
+    title: Optional[str] = None
+    content_type: Optional[str] = None  # e.g., "video", "quiz", "text"
+    file_id: Optional[str] = None  # Link to the associated file
     expected_time_to_complete: Optional[int] = None
 
 
@@ -230,7 +230,6 @@ class ChapterUpdate(BaseModel):
     description: Optional[str] = None
     contents: Optional[List[ContentUpdate]] = None
     questions: Optional[List[QuestionUpdate]] = None
-
 
 
 class CourseUpdate(BaseModel):
@@ -595,7 +594,8 @@ class QuestionSubmission(BaseModel_):
     selected_option: str
     user_id: int
     source: str
-    enrollment_id: int
+    user_id: int
+    course_id: int
 
 
 class QuizCompletionResponse(BaseModel_):
