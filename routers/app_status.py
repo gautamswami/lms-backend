@@ -14,11 +14,20 @@ app = APIRouter(tags=["app_status"])
 
 @app.post("/app_status", response_model=StatusUpdate)
 def update_status(status_data: StatusUpdate, db: Session = Depends(get_db)):
-    # Create a new status update record
-    new_status = AppStatus(
-        status_update=status_data.status_update, update_datetime=datetime.now()
-    )
-    db.add(new_status)
+    # Fetch the existing status record
+    existing_status = db.query(AppStatus).first()
+
+    if existing_status:
+        # Update the existing status record
+        existing_status.status_update = status_data.status_update
+        existing_status.update_datetime = datetime.now()
+    else:
+        # Create a new status record if none exists
+        existing_status = AppStatus(
+            status_update=status_data.status_update, update_datetime=datetime.now()
+        )
+        db.add(existing_status)
+
     db.commit()
-    db.refresh(new_status)  # Refresh to load the created object with ID and datetime
-    return new_status
+    db.refresh(existing_status)  # Refresh to load the updated object
+    return existing_status
