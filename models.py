@@ -686,3 +686,21 @@ User.completion_percentage = column_property(
     .correlate_except(Enrollment)
     .label("user_completion_percentage")
 )
+
+User.total_tech_enrolled_hours = column_property(
+    select(func.coalesce(func.sum(Course.expected_time_to_complete), 0))
+    .select_from(Enrollment)
+    .join(Course, Enrollment.course_id == Course.id)
+    .where((Enrollment.user_id == User.id) & (Course.category == "technical"))
+    .correlate_except(Course)
+    .label("total_tech_enrolled_hours")
+)
+
+User.total_non_tech_enrolled_hours = column_property(
+    select(func.coalesce(func.sum(Course.expected_time_to_complete), 0))
+    .select_from(Enrollment)
+    .join(Course, Enrollment.course_id == Course.id)
+    .where((Enrollment.user_id == User.id) & (Course.category == "nonTechnical"))
+    .correlate_except(Course)
+    .label("total_non_tech_enrolled_hours")
+)
