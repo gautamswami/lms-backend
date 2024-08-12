@@ -611,16 +611,14 @@ Enrollment.pending_question_count = column_property(
 )
 
 Enrollment.status = column_property(
-    select(
-        case(
-            (Enrollment.completed_hours >= 0, "Active"),
-            (
-                and_(Enrollment.completed_hours == Enrollment.expected_time_to_complete,
-                     Enrollment.pending_question_count == 0),
-                "Completed",
-            ),
-            else_="Pending",
-        )
+    case(
+        [
+            (and_(Enrollment.completed_hours > 0,
+                  Enrollment.completed_hours < Enrollment.expected_time_to_complete), "Active"),
+            (and_(Enrollment.completed_hours == Enrollment.expected_time_to_complete,
+                  Enrollment.pending_question_count == 0), "Completed")
+        ],
+        else_="Pending"
     ).label("status")
 )
 
