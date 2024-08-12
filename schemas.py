@@ -85,8 +85,8 @@ class UserTeamView(UserSortDisplay):
     hours_of_technical_training_completed: Optional[int]
     hours_of_technical_training_target: Optional[int]
     hours_of_non_technical_training_target: Optional[int]
-    total_tech_enrolled_hours: Optional[int]
-    total_non_tech_enrolled_hours: Optional[int]
+    total_tech_enrolled_hours: Optional[int] = 0
+    total_non_tech_enrolled_hours: Optional[int] = 0
 
     compliance_status: Optional[str]
     reminder_needed: Optional[bool]
