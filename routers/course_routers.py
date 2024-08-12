@@ -153,17 +153,17 @@ def get_courses(
     return result
 
 
-# Retrieve courses the current user is enrolled in
+# Retrieve courses the current user is enrolled in (Pending status)
 @app.get("/courses/enrolled/", response_model=List[EnrolledCourseDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    # Retrieve courses with "Pending" status
     enrolled_courses = (
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.completed_hours == 0)
+        .filter(Enrollment.status == "Pending")
         .options(joinedload(Course.enrollments))
         .all()
     )
@@ -180,17 +180,17 @@ def get_courses(
     return response
 
 
-# Retrieve active courses with user's progress
+# Retrieve active courses with user's progress (Active status)
 @app.get("/courses/active/", response_model=List[ListCoursesDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    # Retrieve courses with "Active" status
     enrolled_courses = (
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(or_(and_(Enrollment.completed_hours > 0, Enrollment.completion_percentage < 100), Enrollment.pending_question_count > 0))
+        .filter(Enrollment.status == "Active")
         .options(joinedload(Course.enrollments))
         .all()
     )
@@ -214,24 +214,19 @@ def get_courses(
             response.append(course_display)
 
     return response
-    #
-    # progresses = db.query(Progress).filter(Enrollment.user_id == current_user.id).all()
-    # courses = {progress.enrollment.course for progress in progresses}
-    # return courses
 
 
-# Retrieve completed courses
+# Retrieve completed courses (Completed status)
 @app.get("/courses/completed/", response_model=List[ListCoursesDisplay])
 def get_courses(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    # Retrieve courses with their enrollments directly, making use of the joined load for efficiency
+    # Retrieve courses with "Completed" status
     enrolled_courses = (
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.completion_percentage == 100)
-        .filter(Enrollment.pending_question_count == 0)
+        .filter(Enrollment.status == "Completed")
         .options(joinedload(Course.enrollments))
         .all()
     )
