@@ -531,13 +531,13 @@ class QuizCompletions(Base):
     def calculate_attempt_no(self, db):
         """Calculate the attempt number before inserting a new record."""
         return (
-            db.query(func.count(QuizCompletions.id))
-            .filter(
-                QuizCompletions.question_id == self.question_id,
-                QuizCompletions.enrollment_id == self.enrollment_id,
-            )
-            .scalar()
-            + 1
+                db.query(func.count(QuizCompletions.id))
+                .filter(
+                    QuizCompletions.question_id == self.question_id,
+                    QuizCompletions.enrollment_id == self.enrollment_id,
+                )
+                .scalar()
+                + 1
         )
 
 
@@ -596,14 +596,14 @@ Enrollment.status = column_property(
         case(
             (Enrollment.completed_hours == 0, "Pending"),
             (
-                Enrollment.completed_hours == Enrollment.expected_time_to_complete,
+                and_(Enrollment.completed_hours == Enrollment.expected_time_to_complete,
+                     Enrollment.pending_question_count == 0),
                 "Completed",
             ),
             else_="Active",
         )
     ).label("status")
 )
-
 
 Enrollment.pending_chapter_count = column_property(
     select(func.count(Chapter.id))
@@ -678,7 +678,6 @@ User.total_non_tech_learning_hours = column_property(
     )  # Apply filters
     .label("total_non_tech_learning_hours")
 )
-
 
 User.completion_percentage = column_property(
     select(cast(func.coalesce(func.avg(Enrollment.completion_percentage), 0), Float))

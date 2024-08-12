@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Form
 from sqlalchemy import exists
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, and_, or_
 
 # Import local modules
 from auth import get_current_user
@@ -190,8 +190,7 @@ def get_courses(
         db.query(Course)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .filter(Enrollment.user_id == current_user.id)
-        .filter(Enrollment.completed_hours > 0)
-        .filter(Enrollment.completion_percentage < 100)
+        .filter(or_(and_(Enrollment.completed_hours > 0, Enrollment.completion_percentage < 100), Enrollment.pending_question_count > 0))
         .options(joinedload(Course.enrollments))
         .all()
     )
