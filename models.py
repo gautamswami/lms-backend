@@ -590,6 +590,25 @@ Enrollment.completion_percentage = column_property(
     .correlate_except(Course)
     .label("completion_percentage")
 )
+Enrollment.pending_question_count = column_property(
+    select(func.count(Questions.id))
+    .select_from(Questions)
+    .join(Course)
+    .outerjoin(
+        QuizCompletions,
+        and_(
+            QuizCompletions.question_id == Questions.id,
+            QuizCompletions.enrollment_id == Enrollment.id,
+            QuizCompletions.correct_answer == True,
+        ),
+    )
+    .filter(
+        Course.id == Enrollment.course_id,
+        QuizCompletions.id.is_(None),  # No completion record for this question
+    )
+    .correlate_except(QuizCompletions)
+    .scalar_subquery()
+)
 
 Enrollment.status = column_property(
     select(
@@ -624,25 +643,6 @@ Enrollment.pending_chapter_count = column_property(
     .scalar_subquery()
 )
 
-Enrollment.pending_question_count = column_property(
-    select(func.count(Questions.id))
-    .select_from(Questions)
-    .join(Course)
-    .outerjoin(
-        QuizCompletions,
-        and_(
-            QuizCompletions.question_id == Questions.id,
-            QuizCompletions.enrollment_id == Enrollment.id,
-            QuizCompletions.correct_answer == True,
-        ),
-    )
-    .filter(
-        Course.id == Enrollment.course_id,
-        QuizCompletions.id.is_(None),  # No completion record for this question
-    )
-    .correlate_except(QuizCompletions)
-    .scalar_subquery()
-)
 #
 # ServiceLine.total_courses = column_property(
 #     select(func.count(Course.id))
