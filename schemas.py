@@ -77,19 +77,19 @@ class UserUpdate(BaseModel_):
 
 
 class UserTeamView(UserSortDisplay):
-    number_of_trainings_completed: int
-    hours_of_training_completed: int
-    number_of_trainings_pending: int
-    number_of_mandatory_trainings_overdue: int
-    hours_of_non_technical_training_completed: int
-    hours_of_technical_training_completed: int
-    hours_of_technical_training_target: int
-    hours_of_non_technical_training_target: int
-    total_tech_enrolled_hours: int
-    total_non_tech_enrolled_hours: int
+    number_of_trainings_completed: Optional[int]
+    hours_of_training_completed: Optional[int]
+    number_of_trainings_pending: Optional[int]
+    number_of_mandatory_trainings_overdue: Optional[int]
+    hours_of_non_technical_training_completed: Optional[int]
+    hours_of_technical_training_completed: Optional[int]
+    hours_of_technical_training_target: Optional[int]
+    hours_of_non_technical_training_target: Optional[int]
+    total_tech_enrolled_hours: Optional[int]
+    total_non_tech_enrolled_hours: Optional[int]
 
-    compliance_status: str
-    reminder_needed: bool
+    compliance_status: Optional[str]
+    reminder_needed: Optional[bool]
 
 
 # ############################################ USER ENDS HERE ####################################################
