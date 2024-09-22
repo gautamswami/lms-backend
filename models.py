@@ -646,31 +646,76 @@ Enrollment.pending_chapter_count = column_property(
 #     .label("total_courses")
 # )
 
+# User.total_learning_hours = column_property(
+#     select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
+#     .where(Enrollment.user_id == User.id)  # Filter Enrollments by User's ID
+#     .label("total_learning_hours")
+# )
+# User.total_tech_learning_hours = column_property(
+#     select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
+#     .select_from(User)  # Start explicitly from User
+#     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
+#     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
+#     .where(
+#         (Enrollment.user_id == User.id) & (Course.category == "technical")
+#     )  # Apply filters
+#     .label("total_tech_learning_hours")
+# )
+
+# User.total_non_tech_learning_hours = column_property(
+#     select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
+#     .select_from(User)  # Start explicitly from User
+#     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
+#     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
+#     .where(
+#         (Enrollment.user_id == User.id) & (Course.category == "nonTechnical")
+#     )  # Apply filters
+#     .label("total_non_tech_learning_hours")
+# )
+
+
 User.total_learning_hours = column_property(
-    select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
-    .where(Enrollment.user_id == User.id)  # Filter Enrollments by User's ID
+    select(
+        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
+        func.coalesce(func.sum(ExternalCertification.hours), 0)
+    )
+    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
+    .where(
+        (ExternalCertification.status == "approved") | (Enrollment.user_id == User.id)
+    )
     .label("total_learning_hours")
 )
-
 User.total_tech_learning_hours = column_property(
-    select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
-    .select_from(User)  # Start explicitly from User
-    .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
-    .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
+    select(
+        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
+        func.coalesce(func.sum(ExternalCertification.hours), 0)
+    )
+    .select_from(User)
+    .outerjoin(Enrollment, User.id == Enrollment.user_id)
+    .outerjoin(Course, Enrollment.course_id == Course.id)
+    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
     .where(
-        (Enrollment.user_id == User.id) & (Course.category == "technical")
-    )  # Apply filters
+        (Course.category == "technical") | 
+        (ExternalCertification.category == "technical") &
+        (ExternalCertification.status == "approved")
+    )
     .label("total_tech_learning_hours")
 )
 
 User.total_non_tech_learning_hours = column_property(
-    select(func.coalesce(func.sum(Enrollment.completed_hours), 0))
-    .select_from(User)  # Start explicitly from User
-    .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
-    .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
+    select(
+        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
+        func.coalesce(func.sum(ExternalCertification.hours), 0)
+    )
+    .select_from(User)
+    .outerjoin(Enrollment, User.id == Enrollment.user_id)
+    .outerjoin(Course, Enrollment.course_id == Course.id)
+    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
     .where(
-        (Enrollment.user_id == User.id) & (Course.category == "nonTechnical")
-    )  # Apply filters
+        (Course.category == "nonTechnical") | 
+        (ExternalCertification.category == "nonTechnical") &
+        (ExternalCertification.status == "approved")
+    )
     .label("total_non_tech_learning_hours")
 )
 
