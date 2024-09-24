@@ -658,7 +658,7 @@ User.total_tech_learning_hours = column_property(
     .join(Enrollment, User.id == Enrollment.user_id)  # Join User to Enrollment
     .join(Course, Enrollment.course_id == Course.id)  # Join Enrollment to Course
     .where(
-        (Enrollment.user_id == User.id) & (Course.category == "technical")
+        (Enrollment.user_id == User.id) & (Course.category == "Technical")
     )  # Apply filters
     .label("total_tech_learning_hours")
 )
@@ -685,7 +685,7 @@ User.total_tech_enrolled_hours = column_property(
     select(func.coalesce(func.sum(Course.expected_time_to_complete), 0))
     .select_from(Enrollment)
     .join(Course, Enrollment.course_id == Course.id)
-    .where((Enrollment.user_id == User.id) & (Course.category == "technical"))
+    .where((Enrollment.user_id == User.id) & (Course.category == "Technical"))
     .correlate_except(Course)
     .label("total_tech_enrolled_hours")
 )
