@@ -158,6 +158,96 @@ class User(Base):
     def certificates_count(self):
         return len(self.certificates)
 
+    # Properties for total learning hours, tech, and non-tech learning hours
+    @property
+    def total_learning_hours(self):
+        return self.get_total_learning_hours(self.id)
+
+    @property
+    def total_tech_learning_hours(self):
+        return self.get_total_tech_learning_hours(self.id)
+
+    @property
+    def total_non_tech_learning_hours(self):
+        return self.get_total_non_tech_learning_hours(self.id)
+
+    @staticmethod
+    def get_total_learning_hours(user_id):
+        session = SessionLocal()
+
+        # Query 1: Sum of completed_hours from Enrollment
+        completed_hours_query = session.query(
+            func.coalesce(func.sum(Enrollment.completed_hours), 0)
+        ).filter(Enrollment.user_id == user_id).scalar()
+
+        # Query 2: Sum of hours from ExternalCertification (only approved ones)
+        certification_hours_query = session.query(
+            func.coalesce(func.sum(ExternalCertification.hours), 0)
+        ).filter(
+            ExternalCertification.uploaded_by_id == user_id,
+            ExternalCertification.status == 'approved'
+        ).scalar()
+
+        # Combine the results
+        total_learning_hours = completed_hours_query + certification_hours_query
+
+        session.close()  # Make sure to close the session
+        return total_learning_hours
+
+    @staticmethod
+    def get_total_tech_learning_hours(user_id):
+        session = SessionLocal()
+
+        # Query 1: Sum of completed_hours for technical courses from Enrollment
+        tech_completed_hours_query = session.query(
+            func.coalesce(func.sum(Enrollment.completed_hours), 0)
+        ).join(Course).filter(
+            Enrollment.user_id == user_id,
+            Course.category == 'technical'
+        ).scalar()
+
+        # Query 2: Sum of hours from ExternalCertification (technical, approved ones)
+        tech_certification_hours_query = session.query(
+            func.coalesce(func.sum(ExternalCertification.hours), 0)
+        ).filter(
+            ExternalCertification.uploaded_by_id == user_id,
+            ExternalCertification.category == 'technical',
+            ExternalCertification.status == 'approved'
+        ).scalar()
+
+        # Combine the results
+        total_tech_learning_hours = tech_completed_hours_query + tech_certification_hours_query
+
+        session.close()  # Make sure to close the session
+        return total_tech_learning_hours
+
+    @staticmethod
+    def get_total_non_tech_learning_hours(user_id):
+        session = SessionLocal()
+
+        # Query 1: Sum of completed_hours for non-technical courses from Enrollment
+        non_tech_completed_hours_query = session.query(
+            func.coalesce(func.sum(Enrollment.completed_hours), 0)
+        ).join(Course).filter(
+            Enrollment.user_id == user_id,
+            Course.category == 'nonTechnical'
+        ).scalar()
+
+        # Query 2: Sum of hours from ExternalCertification (non-technical, approved ones)
+        non_tech_certification_hours_query = session.query(
+            func.coalesce(func.sum(ExternalCertification.hours), 0)
+        ).filter(
+            ExternalCertification.uploaded_by_id == user_id,
+            ExternalCertification.category == 'nonTechnical',
+            ExternalCertification.status == 'approved'
+        ).scalar()
+
+        # Combine the results
+        total_non_tech_learning_hours = non_tech_completed_hours_query + non_tech_certification_hours_query
+
+        session.close()  # Make sure to close the session
+        return total_non_tech_learning_hours
+
     __table_args__ = (Index("idx_user_email", "email"),)
 
 
@@ -674,50 +764,50 @@ Enrollment.pending_chapter_count = column_property(
 # )
 
 
-User.total_learning_hours = column_property(
-    select(
-        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
-        func.coalesce(func.sum(ExternalCertification.hours), 0)
-    )
-    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
-    .where(
-        (ExternalCertification.status == "approved") | (Enrollment.user_id == User.id)
-    )
-    .label("total_learning_hours")
-)
-User.total_tech_learning_hours = column_property(
-    select(
-        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
-        func.coalesce(func.sum(ExternalCertification.hours), 0)
-    )
-    .select_from(User)
-    .outerjoin(Enrollment, User.id == Enrollment.user_id)
-    .outerjoin(Course, Enrollment.course_id == Course.id)
-    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
-    .where(
-        (Course.category == "technical") | 
-        (ExternalCertification.category == "technical") &
-        (ExternalCertification.status == "approved")
-    )
-    .label("total_tech_learning_hours")
-)
+# User.total_learning_hours = column_property(
+#     select(
+#         func.coalesce(func.sum(Enrollment.completed_hours), 0) +
+#         func.coalesce(func.sum(ExternalCertification.hours), 0)
+#     )
+#     .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
+#     .where(
+#         (ExternalCertification.status == "approved") | (Enrollment.user_id == User.id)
+#     )
+#     .label("total_learning_hours")
+# )
+# User.total_tech_learning_hours = column_property(
+#     select(
+#         func.coalesce(func.sum(Enrollment.completed_hours), 0) +
+#         func.coalesce(func.sum(ExternalCertification.hours), 0)
+#     )
+#     .select_from(User)
+#     .outerjoin(Enrollment, User.id == Enrollment.user_id)
+#     .outerjoin(Course, Enrollment.course_id == Course.id)
+#     .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
+#     .where(
+#         (Course.category == "technical") |
+#         (ExternalCertification.category == "technical") &
+#         (ExternalCertification.status == "approved")
+#     )
+#     .label("total_tech_learning_hours")
+# )
 
-User.total_non_tech_learning_hours = column_property(
-    select(
-        func.coalesce(func.sum(Enrollment.completed_hours), 0) + 
-        func.coalesce(func.sum(ExternalCertification.hours), 0)
-    )
-    .select_from(User)
-    .outerjoin(Enrollment, User.id == Enrollment.user_id)
-    .outerjoin(Course, Enrollment.course_id == Course.id)
-    .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
-    .where(
-        (Course.category == "nonTechnical") | 
-        (ExternalCertification.category == "nonTechnical") &
-        (ExternalCertification.status == "approved")
-    )
-    .label("total_non_tech_learning_hours")
-)
+# User.total_non_tech_learning_hours = column_property(
+#     select(
+#         func.coalesce(func.sum(Enrollment.completed_hours), 0) +
+#         func.coalesce(func.sum(ExternalCertification.hours), 0)
+#     )
+#     .select_from(User)
+#     .outerjoin(Enrollment, User.id == Enrollment.user_id)
+#     .outerjoin(Course, Enrollment.course_id == Course.id)
+#     .outerjoin(ExternalCertification, ExternalCertification.uploaded_by_id == User.id)
+#     .where(
+#         (Course.category == "nonTechnical") |
+#         (ExternalCertification.category == "nonTechnical") &
+#         (ExternalCertification.status == "approved")
+#     )
+#     .label("total_non_tech_learning_hours")
+# )
 
 User.completion_percentage = column_property(
     select(cast(func.coalesce(func.avg(Enrollment.completion_percentage), 0), Float))
