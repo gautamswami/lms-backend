@@ -60,8 +60,8 @@ def add_quiz_questions_to_course(
                 raise HTTPException(
                     detail=f"Question id is not valid : {q_id}", status_code=404
                 )
-
-        db.execute(Questions.__table__.insert(), questions_to_add)
+        if questions_to_add: 
+            db.execute(Questions.__table__.insert(), questions_to_add)
         db.commit()
 
         return True
