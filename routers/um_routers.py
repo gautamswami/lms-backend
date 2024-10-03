@@ -396,7 +396,7 @@ def get_team_members(
         technical_hours = sum(
             e.course.expected_time_to_complete
             for e in completed_trainings
-            if e.course.category == "Technical"
+            if e.course.category == "technical"
         )
         non_technical_hours = sum(
             e.course.expected_time_to_complete
@@ -484,7 +484,7 @@ def get_team_members(
         technical_hours = sum(
             e.course.expected_time_to_complete
             for e in completed_trainings
-            if e.course.category == "Technical"
+            if e.course.category == "technical"
         )
         non_technical_hours = sum(
             e.course.expected_time_to_complete
