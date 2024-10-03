@@ -212,7 +212,7 @@ class User(Base):
         ).filter(
             ExternalCertification.uploaded_by_id == user_id,
             ExternalCertification.category == 'technical',
-            ExternalCertification.status == 'approved'
+            ExternalCertification.status.in_(['approve', 'approved'])
         ).scalar()
 
         # Combine the results
@@ -233,15 +233,17 @@ class User(Base):
             Course.category == 'nonTechnical'
         ).scalar()
 
+        print(non_tech_completed_hours_query,'non_tech_completed_hours_query')
+
         # Query 2: Sum of hours from ExternalCertification (non-technical, approved ones)
         non_tech_certification_hours_query = session.query(
             func.coalesce(func.sum(ExternalCertification.hours), 0)
         ).filter(
             ExternalCertification.uploaded_by_id == user_id,
             ExternalCertification.category == 'nonTechnical',
-            ExternalCertification.status == 'approved'
+            ExternalCertification.status.in_(['approve', 'approved'])
         ).scalar()
-
+        print(non_tech_certification_hours_query,'non_tech_certification_hours_query')
         # Combine the results
         total_non_tech_learning_hours = non_tech_completed_hours_query + non_tech_certification_hours_query
 
