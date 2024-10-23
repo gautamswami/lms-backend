@@ -303,6 +303,12 @@ class DashStatsNew(BaseModel_):
     active_courses: List[CourseStats]
     certificates_count: int
 
+class MonthlyStudyHours(BaseModel):
+    month: str  # Format: "YYYY-MM"
+    hours: float
+
+class StudyHoursResponse(BaseModel):
+    data: List[MonthlyStudyHours]
 
 class InstructorDashStatsNew(DashStatsNew):
     total_users_count: int = 0
