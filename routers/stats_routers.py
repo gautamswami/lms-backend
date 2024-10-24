@@ -76,7 +76,7 @@ def dash_stats(
         if status == "Completed":
             total_completed_hours += expected_time_to_complete
             completed_courses.append(course_title)
-            if category == "Technical":
+            if category == "technical":
                 technical_hours += expected_time_to_complete
             else:
                 non_technical_hours += expected_time_to_complete
@@ -88,7 +88,7 @@ def dash_stats(
             pending_courses.append(course_title)
             if due_date and datetime.strptime(due_date, "%Y-%m-%d") < current_time:
                 overdue_courses.append(course_title)
-            if category == "Technical":
+            if category == "technical":
                 technical_hours += completed_hours
             else:
                 non_technical_hours += completed_hours
@@ -278,7 +278,7 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
     active_courses = [
         CourseStats.from_orm(course) for course in current_user.courses_assigned if course.status == 'Enrolled'
     ]
-
+    print(current_user.get_total_non_tech_learning_hours(current_user.id))
     if current_user.role_name == 'Employee':
         return DashStatsNew(
             completed_course_count=completed_course_count,
@@ -291,7 +291,7 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
             certificates_count=current_user.certificates_count,
             total_learning_hours=current_user.total_learning_hours,
             total_tech_learning_hours=current_user.total_tech_learning_hours,
-            total_non_tech_learning_hours=current_user.total_non_tech_learning_hours,
+            total_non_tech_learning_hours=current_user.get_total_non_tech_learning_hours(current_user.id),
             complience_total_tech_learning_target=complience_total_tech_learning_target,
             complience_total_non_tech_learning_target=complience_total_non_tech_learning_target,
         )
