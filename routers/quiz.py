@@ -232,11 +232,12 @@ def submit_question(
         .filter(
             Enrollment.user_id == submission.user_id,
             Enrollment.course_id == submission.course_id,
-            Enrollment.status
-            != "Completed",  # Assuming you want to filter out completed courses
+            # Enrollment.status
+            # != "Completed",  # Assuming you want to filter out completed courses
         )
         .first()
     )
+    print(enrollment)
     if not enrollment:
         raise HTTPException(
             status_code=404, detail="Enrollment not found for the given course and user"

@@ -380,7 +380,7 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     # Query 1: Progress Hours from Course Content
     progress_query = (
         db.query(
-            func.to_char(Progress.completed_at, "YYYY-MM").label("month"),
+            func.strftime("%Y-%m", Progress.completed_at).label("month"),  # Use strftime for date formatting
             func.sum(Content.expected_time_to_complete).label("hours")
         )
         .join(Enrollment, Progress.enrollment_id == Enrollment.id)
@@ -404,7 +404,7 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     # Query 2: External Certification Hours
     certification_query = (
         db.query(
-            func.to_char(ExternalCertification.date_of_completion, "YYYY-MM").label("month"),
+            func.strftime("%Y-%m", ExternalCertification.date_of_completion).label("month"),  # Use strftime for date formatting
             func.sum(ExternalCertification.hours).label("hours")
         )
         .filter(
@@ -431,3 +431,84 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     ]
 
     return StudyHoursResponse(data=response_data)
+
+
+
+
+@app.get("/the/last_api_final/", response_model=StudyHoursResponse)
+def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Returns the logged-in user's study hours for each of the last 12 months.
+    Includes hours from both course progress and external certifications.
+    """
+    today = datetime.today()
+    # Generate a list of the last 12 months in "YYYY-MM" format
+    months = []
+    for i in range(12):
+        month_date = today - relativedelta(months=i)
+        month_str = month_date.strftime("%Y-%m")
+        months.append(month_str)
+    months = sorted(months)  # Ensure chronological order
+
+    # Initialize a dictionary with months as keys and 0 hours
+    study_hours_dict = {month: 0.0 for month in months}
+    start_date = (today - relativedelta(months=11)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    end_date = (today + relativedelta(months=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # Query 1: Progress Hours from Course Content
+    progress_query = (
+        db.query(
+            func.strftime("%Y-%m", Progress.completed_at).label("month"),  # Use strftime for date formatting
+            func.sum(Content.expected_time_to_complete).label("hours")
+        )
+        .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+        .join(Content, Progress.content_id == Content.id)
+        .join(User, Enrollment.user_id == User.id)
+        .filter(
+            User.counselor_id == current_user.id,
+            Progress.completed_at >= start_date,
+            Progress.completed_at < end_date
+        )
+        .group_by("month")
+    )
+
+    progress_results = progress_query.all()
+
+    for result in progress_results:
+        month = result.month
+        hours = float(result.hours) if result.hours else 0.0
+        if month in study_hours_dict:
+            study_hours_dict[month] += hours
+
+    # Query 2: External Certification Hours
+    certification_query = (
+        db.query(
+            func.strftime("%Y-%m", ExternalCertification.date_of_completion).label("month"),  # Use strftime for date formatting
+            func.sum(ExternalCertification.hours).label("hours")
+        )
+        .filter(
+            ExternalCertification.uploaded_by.counselor_id == current_user.id,
+            ExternalCertification.date_of_completion >= start_date,
+            ExternalCertification.date_of_completion < end_date,
+            ExternalCertification.status == 'approved'  # Assuming only approved certifications count
+        )
+        .group_by("month")
+    )
+
+    certification_results = certification_query.all()
+
+    for result in certification_results:
+        month = result.month
+        hours = float(result.hours) if result.hours else 0.0
+        if month in study_hours_dict:
+            study_hours_dict[month] += hours
+
+    # Prepare the response data
+    response_data = [
+        MonthlyStudyHours(month=month, hours=study_hours_dict.get(month, 0.0))
+        for month in months
+    ]
+
+    return StudyHoursResponse(data=response_data)
+
+

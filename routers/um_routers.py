@@ -15,13 +15,13 @@ from schemas import *
 
 app = APIRouter(prefix="/um", tags=["User Management"])
 
-SMTP_SERVER = "smtp-relay.brevo.com"
+SMTP_SERVER = "smtp-mail.outlook.com"
 PORT = 587
-LOGIN = "770dc4001@smtp-brevo.com"
-PASSWORD = "McSQf8NqvOxb7mJF"
+LOGIN = "lms@pierag.com"
+PASSWORD = "HomeSweet@2024#"
 
 # Email details
-FROM_EMAIL = "driftcodedev@gmail.com"
+FROM_EMAIL = "lms@pierag.com"
 TO_EMAIL = "akash21091999@gmail.com"
 SUBJECT = "Test Email"
 BODY = "This is a test email sent using SMTP in Python."

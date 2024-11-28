@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
-
+from config import complience_total_non_tech_learning_target, complience_total_tech_learning_target
 from pydantic import BaseModel, EmailStr, Field
 from fastapi import UploadFile
 
@@ -298,8 +298,8 @@ class DashStatsNew(BaseModel_):
     total_learning_hours: float
     total_tech_learning_hours: float
     total_non_tech_learning_hours: float
-    complience_total_tech_learning_target: float = 50
-    complience_total_non_tech_learning_target: float = 15
+    complience_total_tech_learning_target: float = complience_total_tech_learning_target
+    complience_total_non_tech_learning_target: float = complience_total_non_tech_learning_target
     active_courses: List[CourseStats]
     certificates_count: int
 
