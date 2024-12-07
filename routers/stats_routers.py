@@ -2,7 +2,8 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text, func
+from sqlalchemy import text, func, extract
+
 from datetime import datetime, timedelta
 
 from auth import get_current_user
@@ -380,19 +381,20 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     # Query 1: Progress Hours from Course Content
     progress_query = (
         db.query(
-            func.strftime("%Y-%m", Progress.completed_at).label("month"),  # Use strftime for date formatting
+            extract('year', Progress.completed_at).label("year"),
+            extract('month', Progress.completed_at).label("month"),
             func.sum(Content.expected_time_to_complete).label("hours")
         )
         .join(Enrollment, Progress.enrollment_id == Enrollment.id)
         .join(Content, Progress.content_id == Content.id)
+        .join(User, Enrollment.user_id == User.id)
         .filter(
-            Enrollment.user_id == current_user.id,
+            User.counselor_id == current_user.id,
             Progress.completed_at >= start_date,
             Progress.completed_at < end_date
         )
-        .group_by("month")
+        .group_by("year", "month")
     )
-
     progress_results = progress_query.all()
 
     for result in progress_results:
@@ -407,15 +409,15 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
             func.strftime("%Y-%m", ExternalCertification.date_of_completion).label("month"),  # Use strftime for date formatting
             func.sum(ExternalCertification.hours).label("hours")
         )
+        .join(User, ExternalCertification.uploaded_by_id == User.id)  # Explicit join
         .filter(
-            ExternalCertification.uploaded_by_id == current_user.id,
+            User.counselor_id == current_user.id,
             ExternalCertification.date_of_completion >= start_date,
             ExternalCertification.date_of_completion < end_date,
             ExternalCertification.status == 'approved'  # Assuming only approved certifications count
         )
         .group_by("month")
     )
-
     certification_results = certification_query.all()
 
     for result in certification_results:
