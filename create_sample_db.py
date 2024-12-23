@@ -106,8 +106,8 @@ def create_sample_data():
 
         # Create users
         super_admin = User(
-            email="superadmin@example.com",
-            password=pwd_context.hash("password"),
+            email="lms@pierag.com",
+            password=pwd_context.hash("SuperAdmin@1"),
             first_name="Super",
             last_name="Admin",
             role_name="Super Admin",

@@ -18,7 +18,7 @@ app = APIRouter(prefix="/um", tags=["User Management"])
 SMTP_SERVER = "smtp-mail.outlook.com"
 PORT = 587
 LOGIN = "lms@pierag.com"
-PASSWORD = "HomeSweet@2024#"
+PASSWORD = "hqrhfssvwxpnfdmt"
 
 # Email details
 FROM_EMAIL = "lms@pierag.com"

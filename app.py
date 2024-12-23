@@ -140,8 +140,8 @@ async def startup_event():
 
     # Create users
     super_admin = models.User(
-        email="superadmin@example.com",
-        password=pwd_context.hash("password"),
+        email="lms@pierag.com",
+        password=pwd_context.hash("SuperAdmin@1"),
         first_name="Super",
         last_name="Admin",
         role_name="Super Admin",
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8800,
+        port=3003,
         ssl_keyfile="Cert/nginx.key",
         ssl_certfile="Cert/nginx.crt",
     )
