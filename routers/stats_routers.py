@@ -358,7 +358,7 @@ def dash_stats(db: Session = Depends(get_db), current_user: User = Depends(get_c
         )
 
 @app.get("/the/last_api/", response_model=StudyHoursResponse)
-def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def chart_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Returns the logged-in user's study hours for each of the last 12 months.
     Includes hours from both course progress and external certifications.
@@ -436,7 +436,7 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
 
 
 @app.get("/the/last_api_final/", response_model=StudyHoursResponse)
-def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def chart_api(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Returns the logged-in user's study hours for each of the last 12 months.
     Includes hours from both course progress and external certifications.
@@ -456,21 +456,53 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     end_date = (today + relativedelta(months=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # Query 1: Progress Hours from Course Content
-    progress_query = (
-        db.query(
-            func.strftime("%Y-%m", Progress.completed_at).label("month"),  # Use strftime for date formatting
-            func.sum(Content.expected_time_to_complete).label("hours")
+    if current_user.role_name == "Super Admin":
+        progress_query = (
+            db.query(
+                func.strftime("%Y-%m", Progress.completed_at).label("month"),
+                func.sum(Content.expected_time_to_complete).label("hours")
+            )
+            .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+            .join(Content, Progress.content_id == Content.id)
+            .join(User, Enrollment.user_id == User.id)
+            .filter(
+                Progress.completed_at >= start_date,
+                Progress.completed_at < end_date
+            )
+            .group_by("month")
         )
-        .join(Enrollment, Progress.enrollment_id == Enrollment.id)
-        .join(Content, Progress.content_id == Content.id)
-        .join(User, Enrollment.user_id == User.id)
-        .filter(
-            User.counselor_id == current_user.id,
-            Progress.completed_at >= start_date,
-            Progress.completed_at < end_date
+    elif current_user.role_name == "Admin":
+        progress_query = (
+            db.query(
+                func.strftime("%Y-%m", Progress.completed_at).label("month"),
+                func.sum(Content.expected_time_to_complete).label("hours")
+            )
+            .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+            .join(Content, Progress.content_id == Content.id)
+            .join(User, Enrollment.user_id == User.id)
+            .filter(
+                User.service_line_id == current_user.service_line_id,
+                Progress.completed_at >= start_date,
+                Progress.completed_at < end_date
+            )
+            .group_by("month")
         )
-        .group_by("month")
-    )
+    else:
+        progress_query = (
+            db.query(
+                func.strftime("%Y-%m", Progress.completed_at).label("month"),
+                func.sum(Content.expected_time_to_complete).label("hours")
+            )
+            .join(Enrollment, Progress.enrollment_id == Enrollment.id)
+            .join(Content, Progress.content_id == Content.id)
+            .join(User, Enrollment.user_id == User.id)
+            .filter(
+                User.counselor_id == current_user.id,
+                Progress.completed_at >= start_date,
+                Progress.completed_at < end_date
+            )
+            .group_by("month")
+        )
 
     progress_results = progress_query.all()
 
@@ -483,14 +515,14 @@ def bad_api(db: Session = Depends(get_db), current_user: User = Depends(get_curr
     # Query 2: External Certification Hours
     certification_query = (
         db.query(
-            func.strftime("%Y-%m", ExternalCertification.date_of_completion).label("month"),  # Use strftime for date formatting
+            func.strftime("%Y-%m", ExternalCertification.date_of_completion).label("month"),
             func.sum(ExternalCertification.hours).label("hours")
         )
+        .join(User, ExternalCertification.uploaded_by_id == User.id)
         .filter(
-            ExternalCertification.uploaded_by.counselor_id == current_user.id,
             ExternalCertification.date_of_completion >= start_date,
             ExternalCertification.date_of_completion < end_date,
-            ExternalCertification.status == 'approved'  # Assuming only approved certifications count
+            ExternalCertification.status == 'approved'
         )
         .group_by("month")
     )
