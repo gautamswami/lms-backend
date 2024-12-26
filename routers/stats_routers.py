@@ -13,7 +13,7 @@ from schemas import DashStats, DashInput, DashStatsNew, CourseStats, InstructorD
     StudyHoursResponse, MonthlyStudyHours
 from dateutil.relativedelta import relativedelta
 
-app = APIRouter(prefix="/stats", tags=["stats"])
+app = APIRouter(prefix="/dashdata", tags=["dashdata"])
 
 
 @app.post("/dash", response_model=DashStats)
