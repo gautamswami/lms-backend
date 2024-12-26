@@ -566,6 +566,80 @@ async def create_content(
     return responses
 
 
+@app.post("/chapters/{chapter_id}/content_/", response_model=List[ContentDisplay])
+async def create_content(
+    chapter_id: int,
+    titles_json: str = Form(...),  # Receive JSON-encoded titles as a string
+    expected_time_to_complete: str = Form(...),
+    files: List[str] = Form(...),  # List of Base64-encoded file data
+    filenames: List[str] = Form(...),  # List of filenames
+    content_types: List[str] = Form(...),  # List of content types
+    db: Session = Depends(get_db),
+):
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    try:
+        titles = json.loads(titles_json)  # Deserialize JSON string into a Python list
+        expected_time_to_complete = json.loads(expected_time_to_complete)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format for titles.")
+
+    if len(files) != len(titles):
+        raise HTTPException(
+            status_code=400, detail="The number of titles and files must match."
+        )
+    if len(files) != len(expected_time_to_complete):
+        raise HTTPException(
+            status_code=400,
+            detail="The number of titles and expected_times must match.",
+        )
+    file_storage = FileStorage()
+    responses = []
+    for idx in range(len(files)):
+        file_data = files[idx]
+        filename = filenames[idx]
+        content_type = content_types[idx]
+
+
+        try:
+            # Decode Base64
+            file_bytes = base64.b64decode(file_data)
+        except base64.binascii.Error:
+            raise HTTPException(status_code=400, detail=f"Invalid Base64 encoding for file at index {idx}.")
+
+        # Create BytesIO object
+        file_io = BytesIO(file_bytes)
+        file_io.seek(0)
+
+        # Create a fake UploadFile
+        upload_file = UploadFile(
+            filename=filename,
+            content_type=content_type,
+            file=file_io
+        )
+
+        try:
+            file_metadata = file_storage.save_file(upload_file, db, type="Course content")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        new_content = Content(
+            chapter_id=chapter_id,
+            title=titles[idx],  # Use the corresponding title from the deserialized list
+            expected_time_to_complete=expected_time_to_complete[idx],
+            content_type=content_type,
+            file_id=file_metadata.FileID,
+        )
+        db.add(new_content)
+        db.commit()
+        db.refresh(new_content)
+        responses.append(new_content)
+
+    return responses
+
+
 # ------------------- Enrollment Operations -------------------
 
 
@@ -641,6 +715,56 @@ async def upload_course_thumbnail(
     # Save the file using the storage class
     try:
         file_metadata = file_storage.save_file(file, db, type="thumbnail")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Fetch the course and update its thumbnail_file_id
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    course.thumbnail_file_id = file_metadata.FileID
+    db.commit()
+
+    return {
+        "message": "Thumbnail updated successfully.",
+        "file_id": file_metadata.FileID,
+    }
+
+
+@app.post("/courses/{course_id}/thumbnail_", status_code=200)
+async def upload_course_thumbnail(
+    file: Base64File,
+    course_id: int = Path(..., description="The ID of the course"),
+    db: Session = Depends(get_db),
+):
+    # Check if the file is an image
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400, detail="Unsupported file type. Please upload an image."
+        )
+    try:
+        # Decode the Base64 string
+        file_bytes = base64.b64decode(file.data)
+    except base64.binascii.Error:
+        raise HTTPException(status_code=400, detail="Invalid Base64 encoding.")
+
+        # Create a BytesIO object
+    file_io = BytesIO(file_bytes)
+    file_io.seek(0)
+
+    # Create a fake UploadFile
+    upload_file = UploadFile(
+        filename=file.filename,
+        content_type=file.content_type,
+        file=file_io
+    )
+
+    file_storage = FileStorage()
+
+    # Save the file using the storage class
+    try:
+        file_metadata = file_storage.save_file(upload_file, db, type="thumbnail")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

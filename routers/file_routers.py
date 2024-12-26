@@ -24,6 +24,36 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail=str(e))
     return {"file_id": file_metadata.FileID, "message": "File uploaded successfully."}
 
+@app.post("/upload_/")
+async def upload_file(
+        file: Base64File,
+        db: Session = Depends(get_db)
+):
+
+    try:
+        # Decode the Base64 string
+        file_bytes = base64.b64decode(file.data)
+    except base64.binascii.Error:
+        raise HTTPException(status_code=400, detail="Invalid Base64 encoding.")
+
+    # Create a BytesIO object
+    file_io = BytesIO(file_bytes)
+    file_io.seek(0)  # Ensure the pointer is at the start
+
+    # Create a fake UploadFile
+    upload_file = UploadFile(
+        filename=file.filename,
+        content_type=file.content_type,
+        file=file_io
+    )
+
+
+    try:
+        file_metadata = storage.save_file(upload_file, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"file_id": file_metadata.FileID, "message": "File uploaded successfully."}
+
 @app.get("/{file_id}")
 async def get_file(file_id: str, db: Session = Depends(get_db)):
     if file_id == '6ABADCEB839EB':

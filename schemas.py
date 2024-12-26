@@ -8,9 +8,15 @@ from pydantic import BaseModel, EmailStr, Field
 from fastapi import UploadFile
 
 
+
 class BaseModel_(BaseModel):
     class Config:
         from_attributes = True
+
+class Base64File(BaseModel):
+    filename: str
+    content_type: str
+    data: str  # Base64-encoded string
 
 
 class UserBase(BaseModel_):
