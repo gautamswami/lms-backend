@@ -131,7 +131,7 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
     return question
 
 
-@app.put("/questions/{question_id}", response_model=QuestionDisplay)
+@app.post("/questions_update/{question_id}", response_model=QuestionDisplay)
 def update_question(
     question_id: int, question_data: QuestionUpdate, db: Session = Depends(get_db)
 ):
@@ -171,7 +171,7 @@ def get_questions_by_course_or_chapter(
     return questions
 
 
-@app.delete("/questions/{question_id}", status_code=204)
+@app.post("/questions_delete/{question_id}", status_code=204)
 def delete_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(Questions).filter(Questions.id == question_id).first()
     if not question:

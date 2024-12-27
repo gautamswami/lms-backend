@@ -194,7 +194,7 @@ def read_user(
 
 
 # noinspection PyTypeChecker
-@app.put("/users/{user_id}/", response_model=UserDisplay)
+@app.post("/users_update/{user_id}/", response_model=UserDisplay)
 def update_user(
         user_id: int,
         user: UserUpdate,
@@ -213,7 +213,7 @@ def update_user(
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
 
 
-@app.delete("/users/{user_id}", response_model=UserDisplay)
+@app.post("/users_delete/{user_id}", response_model=UserDisplay)
 def delete_user(
         user_id: int,
         db: Session = Depends(get_db),

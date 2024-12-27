@@ -265,7 +265,7 @@ def get_courses(
 #     return course
 
 
-@app.put("/courses/{course_id}/", response_model=CourseFullDisplay)
+@app.post("/coursesupdate/{course_id}/", response_model=CourseFullDisplay)
 def update_course(
     course_id: int,
     course_data: CourseUpdate,
@@ -456,7 +456,7 @@ def update_course(
     return CourseFullDisplay.from_orm(course)
 
 
-@app.delete("/courses/{course_id}/", status_code=204)
+@app.post("/courses_delete/{course_id}/", status_code=204)
 def update_question(
     course_id: int,
     db: Session = Depends(get_db),
@@ -488,7 +488,7 @@ def update_question(
             pass
     db.delete(course)
     db.commit()
-    return {"message": "Question deleted successfully"}
+    return {"message": "deleted successfully"}
 
 
 # ------------------- Chapter Operations -------------------
@@ -582,7 +582,7 @@ async def enroll_self(
     return enroll_users(request.course_id, request.user_ids, db)
 
 
-@app.patch("/courses/{course_id}/approve")
+@app.post("/courseapprove/{course_id}/approve")
 def approve_course(
     course_id: int,
     db: Session = Depends(get_db),
@@ -603,7 +603,7 @@ def approve_course(
     return {"message": "Course approved successfully"}
 
 
-@app.patch("/courses/{course_id}/reject")
+@app.post("/coursereject/{course_id}/reject")
 def approve_course(
     course_id: int,
     db: Session = Depends(get_db),

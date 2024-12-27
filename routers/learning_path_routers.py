@@ -68,7 +68,7 @@ def get_learning_path_by_id(learning_path_id: int, db: Session = Depends(get_db)
     return learning_path
 
 
-@app.put("/learning_path/{learning_path_id}/", response_model=LearningPathDisplay)
+@app.post("/learning_path_update/{learning_path_id}/", response_model=LearningPathDisplay)
 def update_learning_path(learning_path_id: int,
                          learning_path_data: CourseUpdate,
                          db: Session = Depends(get_db),
@@ -81,7 +81,7 @@ def update_learning_path(learning_path_id: int,
     return path
 
 
-@app.delete("/learning_path/{learning_path_id}/", status_code=204)
+@app.post("/learning_path_delete/{learning_path_id}/", status_code=204)
 def update_question(learning_path_id: int, db: Session = Depends(get_db),
                     current_user: User = Depends(get_current_user)):
     # DELETE learning_path by id only if there is no Enrollments, delete LearningPathDisplay
@@ -90,7 +90,7 @@ def update_question(learning_path_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Learning path not found")
     db.delete(path)
     db.commit()
-    return Response(status_code=204)
+    return {"message": "Deleted Successfully"}
 
 
 @app.post("/learning_path/assign/", status_code=201)

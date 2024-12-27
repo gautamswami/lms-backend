@@ -127,7 +127,7 @@ async def get_enrolled_courses(
     return response
 
 
-@app.put("/mark_as_done/{content_id}/")
+@app.post("/mark_as_done_put/{content_id}/")
 async def mark_as_done(
     content_id: int,
     db: Session = Depends(get_db),

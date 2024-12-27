@@ -69,7 +69,7 @@ def get_certifications_by_filters(filters: CertificationFilter = Depends(), db: 
 
     return certifications
 
-@app.put("/external_certifications/{certification_id}", response_model=ExternalCertificationDisplay)
+@app.post("/external_certifications_update/{certification_id}", response_model=ExternalCertificationDisplay)
 def update_external_certification(certification_id: int, certification_data: ExternalCertificationUpdate,
                                   db: Session = Depends(get_db)):
     certification = db.query(ExternalCertification).filter(ExternalCertification.id == certification_id).first()
@@ -81,18 +81,18 @@ def update_external_certification(certification_id: int, certification_data: Ext
     return certification
 
 
-@app.delete("/external_certifications/{certification_id}", status_code=204)
+@app.post("/external_certifications_delete/{certification_id}", status_code=204)
 def delete_external_certification(certification_id: int, db: Session = Depends(get_db)):
     certification = db.query(ExternalCertification).filter(ExternalCertification.id == certification_id).first()
     if certification is None:
         raise HTTPException(status_code=404, detail="Certification not found")
     db.delete(certification)
     db.commit()
-    return Response(status_code=204)
+    return {"message": "Deleted Successfully"}
 
 
 
-@app.patch("/external_certifications/{certification_id}/approve")
+@app.post("/external_certifications_approve/{certification_id}/approve")
 def approve_external_certifications(
     certification_id: int,
     db: Session = Depends(get_db),
@@ -113,7 +113,7 @@ def approve_external_certifications(
     return {"message": "external_certifications approved successfully"}
 
 
-@app.patch("/external_certifications/{certification_id}/reject")
+@app.post("/external_certifications_reject/{certification_id}/reject")
 def reject_external_certifications(
     certification_id: int,
     db: Session = Depends(get_db),
