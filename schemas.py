@@ -115,7 +115,7 @@ class ContentFile(BaseModel_):
 class ContentDisplay(ContentBase):
     id: int
     title: str
-    content_type: str
+    content_type: Optional[str]
     file_id: Optional[str]
     expected_time_to_complete: Optional[Union[int, float]] = 0
 
